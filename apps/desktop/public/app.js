@@ -9,6 +9,9 @@ let pending = false;
 let authTimer = null;
 let noticeTimer = null;
 let lastRender = "";
+let lastMarkup = "";
+let authState = "idle";
+let authCancellation = Promise.resolve();
 let returnFocus = null;
 let lastDetails = "";
 const number = new Intl.NumberFormat("de-AT", { maximumFractionDigits: 2 });
@@ -317,9 +320,25 @@ function renderSettings() {
 }
 function render() {
   if (!state) return;
-  content.innerHTML = page === "activities"
-    ? renderActivities()
-    : renderSettings();
+  const markup = page === "activities" ? renderActivities() : renderSettings();
+  if (markup !== lastMarkup) {
+    const active = content.contains(document.activeElement)
+      ? document.activeElement
+      : null;
+    const selector = active?.id
+      ? `#${CSS.escape(active.id)}`
+      : active?.dataset.details
+      ? `[data-details="${CSS.escape(active.dataset.details)}"]`
+      : active?.dataset.action
+      ? `[data-action="${CSS.escape(active.dataset.action)}"]${
+        active.dataset.id ? `[data-id="${CSS.escape(active.dataset.id)}"]` : ""
+      }`
+      : null;
+    content.innerHTML = markup;
+    lastMarkup = markup;
+    if (selector) content.querySelector(selector)?.focus();
+  }
+  lastRender = JSON.stringify([page, state, pending]);
   $("#footnote").textContent = page === "activities"
     ? "Originaldateien bleiben erhalten."
     : "Schalter werden automatisch gespeichert.";
@@ -393,14 +412,17 @@ function openDialog(dialog) {
   returnFocus = document.activeElement;
   dialog.showModal();
 }
-function openLogin() {
+async function openLogin() {
   $("#login-form").hidden = false;
   $("#mfa-form").hidden = true;
   $("#login-status").textContent = "";
-  $("#login-form button").disabled = false;
+  $("#login-form button").disabled = true;
+  $("#login-status").textContent = "Anmeldestatus wird geprüft …";
   $("#password").value = "";
   $("#mfa-code").value = "";
   openDialog(login);
+  await authCancellation;
+  await pollAuth();
 }
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
@@ -480,6 +502,12 @@ for (const dialog of [details, login]) {
   dialog.addEventListener("close", () => {
     if (dialog === login) {
       clearTimeout(authTimer);
+      if (authState === "mfa") {
+        authState = "idle";
+        authCancellation = api("cancelLogin").catch((error) =>
+          notice(error.message, true)
+        );
+      }
       $("#password").value = "";
       $("#mfa-code").value = "";
     }
@@ -507,11 +535,26 @@ async function pollAuth() {
   if (!login.open) return;
   try {
     const result = await api("authStatus");
+    authState = result.status;
+    if (!login.open) return;
     if (result.status === "passed") {
       login.close();
       notice("Mit Garmin verbunden.");
       await refresh();
       return;
+    }
+    if (result.status === "idle") {
+      $("#login-form").hidden = false;
+      $("#mfa-form").hidden = true;
+      $("#login-form button").disabled = false;
+      $("#login-status").textContent = "";
+      return;
+    }
+    if (result.status === "running") {
+      $("#login-form").hidden = true;
+      $("#mfa-form").hidden = true;
+      $("#login-form button").disabled = true;
+      $("#login-status").textContent = "Anmeldung läuft …";
     }
     if (result.status === "failed") {
       throw new Error(result.error || "Anmeldung fehlgeschlagen.");
@@ -534,6 +577,8 @@ async function pollAuth() {
 }
 $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (["running", "mfa"].includes(authState)) return;
+  authState = "running";
   clearTimeout(authTimer);
   $("#login-form button").disabled = true;
   $("#login-status").textContent = "Anmeldung läuft …";
@@ -543,6 +588,7 @@ $("#login-form").addEventListener("submit", async (event) => {
     await api("login", { email, password });
     await pollAuth();
   } catch (error) {
+    authState = "failed";
     $("#login-status").textContent = error.message;
     $("#login-form button").disabled = false;
   }
@@ -552,6 +598,7 @@ $("#mfa-form").addEventListener("submit", async (event) => {
   clearTimeout(authTimer);
   $("#mfa-form button").disabled = true;
   $("#login-status").textContent = "Code wird geprüft …";
+  authState = "running";
   const code = $("#mfa-code").value.trim();
   $("#mfa-code").value = "";
   try {
