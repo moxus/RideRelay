@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@garmin/fitsdk": "npm:@garmin/fitsdk@21.214.0",
+    "garmin-connect-sdk": "npm:garmin-connect-sdk@1.1.0"
+  },
+  "tasks": {
+    "fit:inspect": "deno run --allow-read --allow-env=HOME scripts/inspect_fit.ts",
+    "garmin:login": "deno run --allow-read=.local --allow-write=.local --allow-net=sso.garmin.com,diauth.garmin.com,connectapi.garmin.com scripts/garmin_login.ts",
+    "check": "deno check scripts/*.ts",
+    "lint": "deno lint scripts",
+    "fmt": "deno fmt scripts deno.json README.md"
+  }
+}
