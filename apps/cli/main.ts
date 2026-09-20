@@ -6,7 +6,7 @@ import type { Activity } from "../../packages/contracts/mod.ts";
 const help =
   `RideRelay — MyWhoosh-Aktivitäten lokal sichern und zu Garmin übertragen.
 
-riderelay status | scan | sync [--id ID] [--dry-run] | watch
+riderelay status | scan | reconcile | sync [--id ID] [--dry-run] | watch
 riderelay login | logout | settings [--source ORDNER] [--backup ORDNER]
 
 --json             Maschinenlesbare Ausgabe
@@ -25,7 +25,16 @@ export async function main(args: string[]) {
   }
   if (
     positional.length > 1 ||
-    !["status", "scan", "sync", "watch", "login", "logout", "settings"]
+    ![
+      "status",
+      "scan",
+      "reconcile",
+      "sync",
+      "watch",
+      "login",
+      "logout",
+      "settings",
+    ]
       .includes(command)
   ) throw new Error("Unbekannter Befehl. Hilfe: riderelay --help");
   const { garmin, service } = await createApplication({
@@ -89,6 +98,9 @@ export async function main(args: string[]) {
             ...(options.backup ? { backupDir: String(options.backup) } : {}),
           }),
         );
+        break;
+      case "reconcile":
+        rides(await service.reconcile(options.id as string | undefined));
         break;
       case "scan":
         rides(await service.scan());

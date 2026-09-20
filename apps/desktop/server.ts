@@ -84,7 +84,8 @@ export function createHandler(
         let data: unknown;
         switch (url.pathname) {
           case "/api/scan":
-            data = await service.scan();
+            await service.scan();
+            data = await service.reconcile();
             break;
           case "/api/sync":
             if (body.id !== undefined && typeof body.id !== "string") {

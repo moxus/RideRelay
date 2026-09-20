@@ -14,6 +14,7 @@ Deno.test("local API blocks foreign origins and validates requests before mutati
       return Promise.resolve([]);
     },
     snapshot: () => Promise.resolve({ demo: true }),
+    reconcile: () => Promise.resolve([]),
   } as unknown as SyncService;
   const handler = createHandler(service, {} as GarminAdapter);
   const req = (

@@ -1,4 +1,5 @@
 import type {
+  Activity,
   GarminAdapter,
   SessionTokens,
   TokenStore,
@@ -83,6 +84,7 @@ export class GarminClient implements GarminAdapter {
         status: response.status,
         headers: response.headers,
         data: object(data),
+        entries: Array.isArray(data) ? data : null,
       };
     } catch {
       throw upload ? uncertain() : new GarminError(
@@ -288,6 +290,67 @@ export class GarminClient implements GarminAdapter {
       );
     }
     return { displayName: name };
+  }
+  /** Read-only confirmation. An absent/ambiguous match never authorizes another upload. */
+  async findActivity(
+    activity: Pick<Activity, "startedAt" | "duration" | "distance">,
+  ): Promise<string | null> {
+    const start = Date.parse(activity.startedAt);
+    if (
+      !Number.isFinite(start) || !Number.isFinite(activity.duration) ||
+      activity.duration <= 0 || !Number.isFinite(activity.distance) ||
+      activity.distance <= 0
+    ) return null;
+    const query = new URLSearchParams({
+      start: "0",
+      limit: "100",
+      startDate: new Date(start - 86400000).toISOString().slice(0, 10),
+      endDate: new Date(start + 86400000).toISOString().slice(0, 10),
+    });
+    const url =
+      `${API}/activitylist-service/activities/search/activities?${query}`;
+    const request = async (force = false) => {
+      const tokens = await this.#tokens(force);
+      return this.#request(url, {
+        headers: {
+          ...MOBILE_HEADERS,
+          authorization: `Bearer ${tokens.accessToken}`,
+        },
+      });
+    };
+    let response = await request();
+    if (response.status === 401) response = await request(true);
+    this.#requireOk(response.status);
+    const entries = response.entries ?? response.data.activityList;
+    // A full page may hide another matching activity; fail closed rather than guess.
+    if (!Array.isArray(entries) || entries.length >= 100) return null;
+    const matches = entries.map(object).filter((item) => {
+      const raw = item.startTimeGMT;
+      const remoteStart = typeof raw === "string" &&
+          /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(raw)
+        ? Date.parse(raw.replace(" ", "T").replace(/Z?$/, "Z"))
+        : NaN;
+      const type = object(item.activityType).typeKey;
+      return typeof type === "string" &&
+        [
+          "cycling",
+          "indoor_cycling",
+          "virtual_ride",
+          "road_biking",
+          "virtual_cycling",
+        ].includes(type) &&
+        Math.abs(remoteStart - start) <= 1000 &&
+        typeof item.duration === "number" &&
+        Math.abs(item.duration - activity.duration) <= 1 &&
+        typeof item.distance === "number" &&
+        Math.abs(item.distance - activity.distance) <= 1;
+    });
+    if (matches.length !== 1) return null;
+    const id = matches[0].activityId;
+    return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ||
+        typeof id === "string" && /^[1-9]\d*$/.test(id)
+      ? String(id)
+      : null;
   }
   async upload(
     bytes: Uint8Array,

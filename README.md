@@ -13,6 +13,7 @@ deno task preview          # isolierte Beispieldaten auf http://127.0.0.1:4187
 deno task desktop          # echte lokale Daten im Browser
 deno task cli --help
 deno task cli login        # Passwort und MFA verdeckt im Terminal
+deno task cli reconcile    # unklare Uploads bei Garmin nachprüfen, kein Upload
 deno task cli scan         # lesen und unverändert sichern, kein Upload
 deno task cli sync --dry-run
 deno task cli sync         # alle bereiten Fahrten tatsächlich übertragen
@@ -87,7 +88,7 @@ Origin-/Host-Prüfung und benutzerdefiniertem Header gegen fremde Webseiten.
 FFI-Zugriff wird für den nativen Betriebssystem-Tresor benötigt; Desktop nutzt
 Prozesse nur für Ordnerwahl und Öffnen.
 
-16 automatisierte Tests prüfen FIT/Backup/Persistenz/Deduplizierung,
+18 automatisierte Tests prüfen FIT/Backup/Persistenz/Deduplizierung,
 konkurrierende Uploads, Garmin-Protokoll/MFA/Refresh/Fehler und lokale
 API-Abschirmung. Der Schlüsselbund wurde mit wegwerfbaren Testdaten geprüft.
 Echte Garmin-Uploads sind kein Teil automatisierter Tests. Siehe `MILESTONES.md`

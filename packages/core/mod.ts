@@ -117,6 +117,8 @@ export async function createSyncService(
     CREATE INDEX IF NOT EXISTS activity_identity ON activities(identity);`);
   let scanning = false;
   let closed = false;
+  let reconciliation: Promise<Activity[]> | undefined;
+  let nextReconciliation = 0;
   function list(): Activity[] {
     // A crashed or timed-out upload cannot safely be replayed automatically.
     for (
@@ -305,6 +307,39 @@ export async function createSyncService(
         scanning = false;
       }
     },
+    reconcile(id) {
+      if (reconciliation) return reconciliation;
+      reconciliation = (async () => {
+        if (
+          options.demo || !options.garmin.findActivity ||
+          !await options.garmin.connected()
+        ) return list();
+        for (
+          const a of list().filter((a) =>
+            a.status === "uncertain" && (!id || a.id === id)
+          )
+        ) {
+          try {
+            const remoteId = await options.garmin.findActivity(a);
+            if (!remoteId || !/^[1-9]\d*$/.test(remoteId)) continue;
+            a.status = "synced";
+            a.garminId = remoteId;
+            a.error = null;
+            a.syncedAt = new Date().toISOString();
+            db.prepare(
+              "UPDATE activities SET status='synced',next_retry=0,payload=? WHERE id=? AND status='uncertain'",
+            ).run(JSON.stringify(a), a.id);
+          } catch {
+            /* Remote checks must never turn an unknown upload into a retry. */
+          }
+        }
+        return list();
+      })().finally(() => {
+        reconciliation = undefined;
+        nextReconciliation = Date.now() + 60000;
+      });
+      return reconciliation;
+    },
     async sync(id) {
       if (options.demo) {
         throw new Error("Die Demo überträgt keine Aktivitäten.");
@@ -312,6 +347,7 @@ export async function createSyncService(
       if (!await options.garmin.connected()) {
         throw new Error("Bitte zuerst bei Garmin anmelden.");
       }
+      let attempted = false;
       for (const a of list().filter((a) => !id || a.id === id)) {
         // Explicit retry is allowed only for definite failures, never uncertain outcomes.
         const result = db.prepare(
@@ -322,6 +358,7 @@ export async function createSyncService(
           id ? Number.MAX_SAFE_INTEGER : Date.now(),
         );
         if (!result.changes) continue;
+        attempted = true;
         a.attempts++;
         a.status = "syncing";
         let nextRetry = 0;
@@ -363,11 +400,12 @@ export async function createSyncService(
           "UPDATE activities SET status=?,next_retry=?,payload=? WHERE id=? AND status='syncing'",
         ).run(a.status, nextRetry, JSON.stringify(a), a.id);
       }
-      return list();
+      return attempted ? await service.reconcile(id) : list();
     },
     async watch(signal) {
       while (!signal.aborted && !closed) {
         await service.scan();
+        if (Date.now() >= nextReconciliation) await service.reconcile();
         if (
           (await readSettings()).autoSync && await options.garmin.connected()
         ) await service.sync();

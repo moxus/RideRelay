@@ -42,6 +42,9 @@ export interface TokenStore {
   clear(): Promise<void>;
 }
 export interface GarminAdapter {
+  findActivity?(
+    activity: Pick<Activity, "startedAt" | "duration" | "distance">,
+  ): Promise<string | null>;
   connected(): Promise<boolean>;
   login(
     email: string,
@@ -66,6 +69,7 @@ export interface Snapshot {
 export interface SyncService {
   snapshot(): Promise<Snapshot>;
   scan(): Promise<Activity[]>;
+  reconcile(id?: string): Promise<Activity[]>;
   saveSettings(settings: Partial<Settings>): Promise<Settings>;
   sync(id?: string): Promise<Activity[]>;
   watch(signal: AbortSignal): Promise<void>;

@@ -167,3 +167,44 @@ Deno.test("same activity identity, changed content and watch autoSync setting", 
     await Deno.remove(dir, { recursive: true });
   }
 });
+
+Deno.test("ambiguous upload is reconciled read-only after restart, never sent twice", async () => {
+  const dir = await Deno.makeTempDir();
+  let uploads = 0;
+  let available = false;
+  const garmin = mock(() => {
+    uploads++;
+    return Promise.reject(new Error("lost response"));
+  });
+  garmin.findActivity = () => Promise.resolve(available ? "123" : null);
+  let service = await createSyncService({ dataDir: dir, garmin });
+  try {
+    const source = join(dir, "source");
+    await Deno.mkdir(source);
+    await service.saveSettings({ sourceDir: source });
+    await Deno.writeFile(join(source, "ride.fit"), syntheticFit());
+    await service.scan();
+    equal((await service.sync())[0].status, "uncertain");
+    await service.sync();
+    equal(uploads, 1);
+    garmin.findActivity = () => Promise.reject(new Error("offline"));
+    equal((await service.reconcile())[0].status, "uncertain");
+    service.close();
+    service = await createSyncService({ dataDir: dir, garmin });
+    available = true;
+    garmin.findActivity = () => Promise.resolve(available ? "123" : null);
+    const [a] = await service.reconcile();
+    equal(a.status, "synced");
+    equal(a.garminId, "123");
+    equal(a.error, null);
+    equal(a.attempts, 1);
+    await service.sync();
+    equal(uploads, 1);
+    service.close();
+    service = await createSyncService({ dataDir: dir, garmin });
+    equal((await service.snapshot()).activities[0].status, "synced");
+  } finally {
+    service.close();
+    await Deno.remove(dir, { recursive: true });
+  }
+});

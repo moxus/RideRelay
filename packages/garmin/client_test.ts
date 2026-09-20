@@ -300,3 +300,45 @@ Deno.test("memory store does not expose mutable token reference", async () => {
       (await store.load())?.refreshToken === stored.refreshToken,
   );
 });
+
+Deno.test("readback uniquely matches UTC time, cycling type, duration and rounded distance", async () => {
+  const activity = {
+    startedAt: "2026-09-17T16:18:34.000Z",
+    duration: 3810,
+    distance: 23655.35,
+  };
+  const match = {
+    activityId: 123,
+    startTimeGMT: "2026-09-17 16:18:34",
+    duration: 3810,
+    distance: 23655.349609375,
+    activityType: { typeKey: "virtual_ride" },
+  };
+  for (
+    const [entries, expected] of [
+      [[match], "123"],
+      [[match, { ...match, activityId: 124 }], null],
+      [[{ ...match, startTimeGMT: "2026-09-17 18:18:34" }], null],
+      [[{ ...match, duration: 4000 }], null],
+      [[{ ...match, distance: 24000 }], null],
+      [[{ ...match, activityType: { typeKey: "running" } }], null],
+      [[{ ...match, activityId: "" }], null],
+      [Array.from({ length: 100 }, () => match), null],
+      [[], null],
+    ] as Array<[unknown[], string | null]>
+  ) {
+    const store = new MemoryTokenStore();
+    await store.save(stored);
+    const http = mock([(url, init) => {
+      assert(
+        url.includes("/activitylist-service/activities/search/activities?"),
+      );
+      assert(!init.method || init.method === "GET");
+      assert(!init.body);
+      return json(entries);
+    }]);
+    const client = new GarminClient(store, { fetch: http.fetch, now: () => 0 });
+    assert(await client.findActivity(activity) === expected);
+    http.done();
+  }
+});

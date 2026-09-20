@@ -42,3 +42,23 @@ App bundles are ad hoc signed local builds, not notarized releases. Deno Desktop
 is experimental. Backups require hardlink support. Ambiguous uploads remain
 uncertain and are never automatically replayed. No persistent service is
 installed.
+
+## M5 — Recover a confirmed upload after an ambiguous response
+
+Reported: Garmin contained the ride but RideRelay retained `uncertain`. The
+original response was not retained, so its exact failure shape is unknown.
+Implemented read-only Garmin activity lookup with a unique cycling match on UTC
+start time (1 second), duration (1 second) and distance (1 metre rounding).
+Missing, ambiguous, malformed or truncated results leave the status uncertain.
+
+Reconciliation runs after sync, during desktop monitoring at most once per
+minute, and on desktop refresh; CLI `reconcile [--id ID]` is an explicit
+read-only check. No upload retry is introduced. Confirmed records gain the
+Garmin link and retain the original attempt count. Mock regression tests cover
+rounded distances, wrong metrics/type/time, multiple matches, network failure
+and persisted restart recovery.
+
+Acceptance: 18 tests, check/lint/format and rebuilt desktop/CLI. Live read-only
+lookup found exactly one matching ride; CLI reconcile changed the local record
+from uncertain to synced, error null, attempts still 1. User has now confirmed
+successful live login and upload; no second upload was sent during diagnosis.
