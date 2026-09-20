@@ -1,6 +1,7 @@
 import { createApplication } from "../shared/application.ts";
 import { parseArguments } from "../shared/arguments.ts";
 import { notify } from "../shared/native.ts";
+import type { ActivityStatus } from "../../packages/contracts/mod.ts";
 import { createHandler } from "./server.ts";
 
 const { options } = parseArguments(Deno.args);
@@ -13,14 +14,17 @@ const { garmin, service } = await createApplication({
   dataDir: options["data-dir"] as string | undefined,
 });
 const controller = new AbortController();
+const server = Deno.serve({
+  hostname: "127.0.0.1",
+  port,
+  signal: controller.signal,
+}, createHandler(service, garmin));
 const watching = service.watch(controller.signal).catch((e) =>
   console.error(
     e instanceof Error ? e.message : "Ordnerüberwachung fehlgeschlagen.",
   )
 );
-let seen = new Map(
-  (await service.snapshot()).activities.map((a) => [a.id, a.status]),
-);
+let seen: Map<string, ActivityStatus> | undefined;
 let notifying = false;
 const notifications = setInterval(async () => {
   if (notifying) return;
@@ -28,7 +32,7 @@ const notifications = setInterval(async () => {
   try {
     const state = await service.snapshot();
     for (const activity of state.activities) {
-      if (seen.get(activity.id) === activity.status) continue;
+      if (!seen || seen.get(activity.id) === activity.status) continue;
       if (activity.status === "synced" && state.settings.notifySuccess) {
         notify("RideRelay", `${activity.name} wurde übertragen.`);
       }
@@ -44,11 +48,6 @@ const notifications = setInterval(async () => {
     notifying = false;
   }
 }, 3000);
-const server = Deno.serve({
-  hostname: "127.0.0.1",
-  port,
-  signal: controller.signal,
-}, createHandler(service, garmin));
 const stop = () => controller.abort();
 Deno.addSignalListener("SIGINT", stop);
 try {

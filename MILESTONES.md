@@ -62,3 +62,14 @@ Acceptance: 18 tests, check/lint/format and rebuilt desktop/CLI. Live read-only
 lookup found exactly one matching ride; CLI reconcile changed the local record
 from uncertain to synced, error null, attempts still 1. User has now confirmed
 successful live login and upload; no second upload was sent during diagnosis.
+
+### M5 follow-up — Native restart with an existing vault entry
+
+The rebuilt native app stalled before opening its server. A process sample
+located the wait in synchronous SecKeychainFindGenericPassword. macOS Keychain
+FFI calls now run nonblocking and the loopback server starts before
+session-dependent reads. Native vault save/read/update/delete smoke passed again
+with disposable data. The native app was relaunched and its accessibility state
+confirmed: `Alles synchronisiert`, `Verlauf (1)`, existing ride
+`Synchronisiert`, Garmin `Verbunden`. This also proves persisted status and
+session recovery after restart.

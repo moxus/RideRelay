@@ -60,13 +60,13 @@ export class OsTokenStore implements TokenStore {
       throw vaultError();
     }
   }
-  #operate(
+  async #operate(
     operation: "load" | "save" | "clear",
     value?: SessionTokens,
-  ): SessionTokens | null {
+  ): Promise<SessionTokens | null> {
     const bytes = value ? encoder.encode(JSON.stringify(value)) : undefined;
     try {
-      if (Deno.build.os === "darwin") return this.#mac(operation, bytes);
+      if (Deno.build.os === "darwin") return await this.#mac(operation, bytes);
       if (Deno.build.os === "windows") return this.#windows(operation, bytes);
       throw new GarminError(
         "VAULT",
@@ -88,10 +88,10 @@ export class OsTokenStore implements TokenStore {
   async clear(): Promise<void> {
     await Promise.resolve().then(() => this.#operate("clear"));
   }
-  #mac(
+  async #mac(
     operation: "load" | "save" | "clear",
     bytes?: Uint8Array,
-  ): SessionTokens | null {
+  ): Promise<SessionTokens | null> {
     using security = openLibrary(
       "/System/Library/Frameworks/Security.framework/Security",
       {
@@ -107,6 +107,7 @@ export class OsTokenStore implements TokenStore {
             "buffer",
           ],
           result: "i32",
+          nonblocking: true,
         },
         SecKeychainAddGenericPassword: {
           parameters: [
@@ -120,15 +121,22 @@ export class OsTokenStore implements TokenStore {
             "pointer",
           ],
           result: "i32",
+          nonblocking: true,
         },
         SecKeychainItemModifyAttributesAndData: {
           parameters: ["pointer", "pointer", "u32", "buffer"],
           result: "i32",
+          nonblocking: true,
         },
-        SecKeychainItemDelete: { parameters: ["pointer"], result: "i32" },
+        SecKeychainItemDelete: {
+          parameters: ["pointer"],
+          result: "i32",
+          nonblocking: true,
+        },
         SecKeychainItemFreeContent: {
           parameters: ["pointer", "pointer"],
           result: "i32",
+          nonblocking: true,
         },
       } as const,
     );
@@ -143,7 +151,7 @@ export class OsTokenStore implements TokenStore {
     const size = new Uint32Array(1),
       data = new BigUint64Array(1),
       item = new BigUint64Array(1);
-    const status = security.symbols.SecKeychainFindGenericPassword(
+    const status = await security.symbols.SecKeychainFindGenericPassword(
       null,
       service.length,
       service,
@@ -169,20 +177,22 @@ export class OsTokenStore implements TokenStore {
         }
       }
       if (operation === "clear") {
-        if (itemPtr && security.symbols.SecKeychainItemDelete(itemPtr) !== 0) {
+        if (
+          itemPtr && await security.symbols.SecKeychainItemDelete(itemPtr) !== 0
+        ) {
           throw vaultError();
         }
         return null;
       }
       if (!bytes) throw vaultError();
       const saved = itemPtr
-        ? security.symbols.SecKeychainItemModifyAttributesAndData(
+        ? await security.symbols.SecKeychainItemModifyAttributesAndData(
           itemPtr,
           null,
           bytes.length,
           bytes,
         )
-        : security.symbols.SecKeychainAddGenericPassword(
+        : await security.symbols.SecKeychainAddGenericPassword(
           null,
           service.length,
           service,
@@ -195,7 +205,9 @@ export class OsTokenStore implements TokenStore {
       if (saved !== 0) throw vaultError();
       return null;
     } finally {
-      if (dataPtr) security.symbols.SecKeychainItemFreeContent(null, dataPtr);
+      if (dataPtr) {
+        await security.symbols.SecKeychainItemFreeContent(null, dataPtr);
+      }
       if (itemPtr) foundation.symbols.CFRelease(itemPtr);
     }
   }
