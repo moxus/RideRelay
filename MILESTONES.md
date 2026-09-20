@@ -73,3 +73,12 @@ with disposable data. The native app was relaunched and its accessibility state
 confirmed: `Alles synchronisiert`, `Verlauf (1)`, existing ride
 `Synchronisiert`, Garmin `Verbunden`. This also proves persisted status and
 session recovery after restart.
+
+## M6 — RideRelay app icon
+
+Generated a petrol rounded-square app icon with white interlocking chain links
+using the built-in Imagegen tool. Original transparent PNG and multiresolution
+macOS ICNS are tracked under apps/desktop/assets. Prompt and provenance are
+recorded there. Root desktop configuration references the icon. Native desktop
+build passed; bundle icon metadata and embedded asset verified; 128px rendering
+inspected.

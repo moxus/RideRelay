@@ -26,7 +26,11 @@
   "desktop": {
     "app": {
       "name": "RideRelay",
-      "identifier": "dev.riderelay.app"
+      "identifier": "dev.riderelay.app",
+      "icons": {
+        "macos": "./apps/desktop/assets/riderelay.icns",
+        "linux": "./apps/desktop/assets/riderelay.png"
+      }
     },
     "backend": "webview"
   },
