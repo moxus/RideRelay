@@ -1,0 +1,1 @@
+{ "name": "@riderelay/cli", "exports": "./main.ts" }

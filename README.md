@@ -1,69 +1,94 @@
-# MyWhoosh → Garmin: Deno compatibility spike
+# RideRelay
 
-Two independent checks, without uploading or modifying activities.
+MyWhoosh-Fahrten lokal sichern und zu Garmin Connect übertragen. Gemeinsamer
+Deno-Kern für CLI und native Desktop-App, mit Aktivitäten, Verlauf und
+Einstellungen.
 
-## Requirements
+## Start
 
-Deno 2.9 or newer. Validated locally with Homebrew Deno 2.9.7 on macOS arm64.
-
-## Read MyWhoosh FIT files
-
-```sh
-deno task fit:inspect
-# Or inspect an explicit file:
-deno task fit:inspect '/absolute/path/activity.fit'
-```
-
-The default is the macOS MyWhoosh data directory. The script validates the FIT
-signature and CRC, decodes messages, reports session summaries and sensor
-coverage, and verifies that the source file remains unchanged. Sample means are
-simple means of valid samples, not time-weighted activity statistics. Nothing is
-uploaded.
-
-## Test Garmin authentication
+Voraussetzung: Deno 2.9.7 oder kompatibel. Auf macOS: `brew install deno`.
 
 ```sh
-deno task garmin:login
+deno task preview          # isolierte Beispieldaten auf http://127.0.0.1:4187
+deno task desktop          # echte lokale Daten im Browser
+deno task cli --help
+deno task cli login        # Passwort und MFA verdeckt im Terminal
+deno task cli scan         # lesen und unverändert sichern, kein Upload
+deno task cli sync --dry-run
+deno task cli sync         # alle bereiten Fahrten tatsächlich übertragen
+deno task cli watch        # neue Fahrten synchronisieren, bis Strg+C
 ```
 
-On macOS, double-click `Garmin-Login.command` to launch the same task in
-Terminal. Email, password and any requested MFA code are entered locally without
-echo. The test logs in, reads the profile, and restores the in-memory session in
-a second client. Credentials and tokens are not written to disk. Only a
-sanitized result is saved in `.local/garmin-result.json`. An MFA-required
-account is needed to validate MFA; success without a challenge does not prove
-MFA support. This test does not verify token refresh after expiration or session
-persistence across process exits.
+Alternativ startet `Garmin-Login.command` den interaktiven Login. Passwörter
+gehören nicht in Kommandozeilenargumente, Dateien oder Chat. Desktop-Anmeldung
+befindet sich unter Einstellungen. Die Demo sendet keine Fahrten an Garmin.
 
-The candidate `garmin-connect-sdk@1.1.0` uses native fetch and an MFA callback.
-Its current license is PolyForm Noncommercial; this is a private evaluation, not
-a final dependency decision for distribution. FIT activity upload is not exposed
-by this SDK's documented API and requires separate evaluation. The original
-`garmin-connect` package's MFA implementation remains incomplete.
+```sh
+deno task cli settings --source /absoluter/MyWhoosh/Ordner --backup /absoluter/Sicherungsordner
+deno task build:cli        # dist/riderelay
+deno task build:desktop    # dist/RideRelay.app auf macOS
+```
 
-## Checks
+Das native App-Paket enthält Runtime und Oberfläche und braucht zum Start kein
+separates Deno. `deno desktop` ist experimentell. macOS-Builds sind lokal ad hoc
+signiert, nicht für öffentliche Verteilung notarisiert. Die Browser-Ausführung
+verwendet denselben lokalen Server, jedoch ohne native
+Desktop-Benachrichtigungen. Der automatische Desktop-Sync läuft nur, solange die
+App läuft. CLI `watch` synchronisiert ausdrücklich unabhängig vom
+Desktop-Schalter.
+
+## Daten und Abhängigkeiten
+
+- Einzige externe Runtime-Bibliothek: offizielles `@garmin/fitsdk@21.214.0`.
+- Keine Garmin-Client-Bibliothek: eigener HTTP-Adapter für Login, MFA, Refresh,
+  Profil und Multipart-Upload. Die inoffiziellen Garmin-Endpunkte können sich
+  ändern.
+- Deno übernimmt Tasks, Tests, Formatierung, Paketauflösung und ausführbare
+  Builds.
+- SQLite über Deno `node:sqlite`; keine zusätzliche Datenbankinstallation.
+- Einstellungen: `~/Library/Application Support/RideRelay/settings.json`
+  (macOS).
+- Verlauf: `sync.sqlite` im selben Verzeichnis; Windows nutzt
+  `%LOCALAPPDATA%/RideRelay`.
+- Tokens: macOS Keychain bzw. Windows Credential Manager; kein gespeichertes
+  Passwort. Windows-Tresor ist implementiert, aber auf dieser Plattform nicht
+  laufzeitgeprüft. Linux hat derzeit keinen produktiven Token-Tresor.
+- FIT-Originale werden vor dem Upload unverändert unter ihrem SHA-256-Hash
+  gesichert. Der Sicherungsordner benötigt ein Dateisystem mit
+  Hardlink-Unterstützung.
+- `--data-dir` isoliert Einstellungen und Verlauf. Die produktive Garmin-Sitzung
+  ist appweit geteilt; `--demo` verwendet ausschließlich einen internen
+  Testadapter.
+
+Dateihash und Aktivitätsidentität verhindern doppelte Erkennung; atomare SQLite-
+Claims verhindern parallele Uploads derselben Fahrt durch CLI und Desktop.
+Eindeutig vorübergehende Fehler werden begrenzt erneut versucht. Ein
+abgebrochener oder nicht eindeutig bestätigter Upload bleibt **unklar**, bis
+Garmin geprüft wurde; es gibt dafür absichtlich keinen automatischen erneuten
+Upload. Nach Prozessabbruch wird eine offene Übertragung spätestens nach zehn
+Minuten so markiert.
+
+Die App repariert FIT-Dateien nicht automatisch. Beschädigte Dateien bleiben im
+Verlauf sichtbar und werden nicht hochgeladen. Vorhandene Backups werden nicht
+überschrieben. Quellen und Sicherungen werden niemals automatisch gelöscht.
+
+## Entwicklung und Prüfung
 
 ```sh
 deno task check
 deno task lint
-deno fmt --check scripts deno.json README.md
+deno task test
+deno task fmt --check
 ```
 
-Packages are pinned in `deno.json` and `deno.lock`. No npm CLI is required.
+Workspace: `packages/core`, `packages/garmin`, `packages/contracts`,
+`apps/shared`, `apps/cli`, `apps/desktop`. API nur auf Loopback, mit
+Origin-/Host-Prüfung und benutzerdefiniertem Header gegen fremde Webseiten.
+FFI-Zugriff wird für den nativen Betriebssystem-Tresor benötigt; Desktop nutzt
+Prozesse nur für Ordnerwahl und Öffnen.
 
-## Verified on 2026-09-20
-
-- Homebrew Deno 2.9.7, macOS arm64.
-- `@garmin/fitsdk@21.214.0`: the local `MyNewActivity-6.1.0.fit` (96,594 bytes)
-  passed signature and CRC checks and decoded with zero errors: 3,810 records,
-  18 laps, one session. Source SHA-256 was unchanged after reading.
-- This sample already contains average power, heart rate and cadence; no record
-  temperatures are present. The original Python repairs are unnecessary for this
-  particular sample. This does not establish behavior for every MyWhoosh file.
-- `garmin-connect-sdk@1.1.0`: live login, authenticated profile read and reuse
-  of the in-memory session in a second client all passed. The result does not
-  record whether Garmin requested MFA, so MFA is not independently marked as
-  verified.
-- Type checking, linting and formatting checks passed.
-- Not tested: FIT rewriting, activity upload, token expiry/refresh, persistent
-  session storage, Windows or Deno Desktop packaging.
+16 automatisierte Tests prüfen FIT/Backup/Persistenz/Deduplizierung,
+konkurrierende Uploads, Garmin-Protokoll/MFA/Refresh/Fehler und lokale
+API-Abschirmung. Der Schlüsselbund wurde mit wegwerfbaren Testdaten geprüft.
+Echte Garmin-Uploads sind kein Teil automatisierter Tests. Siehe `MILESTONES.md`
+und `design-qa.md` für die Abnahme und verbleibende Live-Prüfungen.

@@ -19,7 +19,7 @@ export function defaultDataDir(): string {
       "riderelay",
     );
 }
-export function defaultSettings(dataDir = defaultDataDir()): Settings {
+export function defaultSettings(dataDir: string = defaultDataDir()): Settings {
   const home = Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE") ?? ".";
   return {
     sourceDir: Deno.build.os === "darwin"

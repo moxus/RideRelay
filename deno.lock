@@ -1,28 +1,16 @@
 {
   "version": "5",
   "specifiers": {
-    "npm:@garmin/fitsdk@21.214.0": "21.214.0",
-    "npm:garmin-connect-sdk@1.1.0": "1.1.0"
+    "npm:@garmin/fitsdk@21.214.0": "21.214.0"
   },
   "npm": {
     "@garmin/fitsdk@21.214.0": {
       "integrity": "sha512-c3ydrRYD0kPnX8USl+JEyJ9smhol3/JRxcU9QVZUvmb7ZBoGwhsqCAe7wXhwMJnMba97x4x+9J/yXr6WYUVaYQ=="
-    },
-    "garmin-connect-sdk@1.1.0": {
-      "integrity": "sha512-vl8wqs9w62myMjWU6iL32cgxNEptLkOQiXaRHrwNEKQXuDJQii5+BGpUyP4Y9/xH5XAZJ0vWEwCREthpV6fYQg==",
-      "dependencies": [
-        "zod"
-      ],
-      "bin": true
-    },
-    "zod@3.25.76": {
-      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
     }
   },
   "workspace": {
     "dependencies": [
-      "npm:@garmin/fitsdk@21.214.0",
-      "npm:garmin-connect-sdk@1.1.0"
+      "npm:@garmin/fitsdk@21.214.0"
     ]
   }
 }

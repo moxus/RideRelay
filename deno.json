@@ -1,13 +1,39 @@
 {
+  "workspace": [
+    "./packages/contracts",
+    "./apps/cli",
+    "./apps/desktop",
+    "./packages/core",
+    "./packages/garmin",
+    "./apps/shared"
+  ],
   "imports": {
-    "@garmin/fitsdk": "npm:@garmin/fitsdk@21.214.0",
-    "garmin-connect-sdk": "npm:garmin-connect-sdk@1.1.0"
+    "@garmin/fitsdk": "npm:@garmin/fitsdk@21.214.0"
   },
   "tasks": {
+    "cli": "deno run --allow-read --allow-write --allow-env --allow-ffi --allow-net=sso.garmin.com,diauth.garmin.com,connectapi.garmin.com apps/cli/main.ts",
+    "desktop": "deno run --allow-read --allow-write --allow-env --allow-ffi --allow-run --allow-net=127.0.0.1,sso.garmin.com,diauth.garmin.com,connectapi.garmin.com apps/desktop/main.ts",
+    "preview": "deno task desktop --demo",
+    "garmin:login": "deno task cli login",
     "fit:inspect": "deno run --allow-read --allow-env=HOME scripts/inspect_fit.ts",
-    "garmin:login": "deno run --allow-read=.local --allow-write=.local --allow-net=sso.garmin.com,diauth.garmin.com,connectapi.garmin.com scripts/garmin_login.ts",
-    "check": "deno check scripts/*.ts",
-    "lint": "deno lint scripts",
-    "fmt": "deno fmt scripts deno.json README.md"
-  }
+    "check": "deno check apps/cli/main.ts apps/desktop/main.ts packages/core/mod_test.ts packages/garmin/*test.ts apps/desktop/*test.ts scripts/*.ts",
+    "test": "deno test --allow-read --allow-write --allow-env packages apps",
+    "lint": "deno lint packages apps scripts",
+    "fmt": "deno fmt packages apps scripts deno.json README.md MILESTONES.md",
+    "build:cli": "deno compile --allow-read --allow-write --allow-env --allow-ffi --allow-net=sso.garmin.com,diauth.garmin.com,connectapi.garmin.com --output dist/riderelay apps/cli/main.ts",
+    "build:desktop": "deno desktop --backend webview --include apps/desktop/public --output dist/RideRelay --allow-read --allow-write --allow-env --allow-ffi --allow-run --allow-net=127.0.0.1,sso.garmin.com,diauth.garmin.com,connectapi.garmin.com apps/desktop/main.ts"
+  },
+  "desktop": {
+    "app": {
+      "name": "RideRelay",
+      "identifier": "dev.riderelay.app"
+    },
+    "backend": "webview"
+  },
+  "exclude": [
+    ".worktrees",
+    ".local",
+    "dist",
+    ".tools"
+  ]
 }

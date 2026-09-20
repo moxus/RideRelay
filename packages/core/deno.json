@@ -1,0 +1,4 @@
+{
+  "name": "@riderelay/core",
+  "exports": "./mod.ts"
+}

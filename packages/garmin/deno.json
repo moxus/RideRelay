@@ -1,0 +1,4 @@
+{
+  "name": "@riderelay/garmin",
+  "exports": "./mod.ts"
+}

@@ -1,1 +1,1 @@
-{ "name": "@whoosh/contracts", "exports": "./mod.ts" }
+{ "name": "@riderelay/contracts", "exports": "./mod.ts" }
