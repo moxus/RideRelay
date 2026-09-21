@@ -168,3 +168,18 @@ this workstation runs macOS. MSI is unsigned and intended for testing.
   layout, keyboard focus and no console errors. Final committed runtime handoff
   pending.
 - Foundation commit: 515c0a0. No additional runtime dependency.
+
+### M11 acceptance — complete
+
+- Integration commit b9a2eb6; GitHub run 35657684366 passed all 24 tests, static
+  gates, compiled CLI smoke and native packaging on macOS and Windows.
+- Final committed runtime: http://127.0.0.1:4189/ using isolated synthetic data
+  in .local/i18n-preview; selected English in Settings and verified focus
+  remains on the language control. Both languages and reload persistence were
+  exercised.
+- Start: `deno task preview --port 4189 --data-dir .local/i18n-preview`; stop
+  that foreground preview with Ctrl+C. No real Garmin account used.
+- Compiled CLI `--help --language en --demo` returned English help, exit 0.
+  Browser check included translated demo-upload rejection, no network upload.
+- Source and build artifacts are on GitHub; v0.1.0 is unchanged. No new release
+  tag was created as part of this implementation.
