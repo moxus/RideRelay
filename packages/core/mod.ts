@@ -22,6 +22,7 @@ export function defaultDataDir(): string {
 export function defaultSettings(dataDir: string = defaultDataDir()): Settings {
   const home = Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE") ?? ".";
   return {
+    language: "auto",
     sourceDir: Deno.build.os === "darwin"
       ? join(
         home,
@@ -157,6 +158,7 @@ export async function createSyncService(
     },
     async saveSettings(update) {
       const allowed = [
+        "language",
         "sourceDir",
         "backupDir",
         "autoSync",
@@ -166,8 +168,14 @@ export async function createSyncService(
       for (const [key, value] of Object.entries(update)) {
         if (
           !allowed.includes(key) ||
-          typeof value !== (key.endsWith("Dir") ? "string" : "boolean")
+          typeof value !==
+            (key.endsWith("Dir") || key === "language" ? "string" : "boolean")
         ) throw new Error("Ungültige Einstellung.");
+        if (
+          key === "language" && !["auto", "de", "en"].includes(String(value))
+        ) {
+          throw new Error("Ungültige Sprache. Erlaubt: auto, de, en.");
+        }
         if (typeof value === "string" && !value.trim()) {
           throw new Error("Bitte einen Ordner angeben.");
         }

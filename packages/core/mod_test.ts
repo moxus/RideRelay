@@ -208,3 +208,33 @@ Deno.test("ambiguous upload is reconciled read-only after restart, never sent tw
     await Deno.remove(dir, { recursive: true });
   }
 });
+
+Deno.test("legacy settings gain automatic language; explicit choice persists and is validated", async () => {
+  const dir = await Deno.makeTempDir();
+  await Deno.writeTextFile(
+    join(dir, "settings.json"),
+    JSON.stringify({ autoSync: false }),
+  );
+  const garmin = mock(() =>
+    Promise.resolve({ duplicate: false, activityId: null })
+  );
+  let service = await createSyncService({ dataDir: dir, garmin });
+  try {
+    equal((await service.snapshot()).settings.language, "auto");
+    await service.saveSettings({ language: "en" });
+    service.close();
+    service = await createSyncService({ dataDir: dir, garmin });
+    equal((await service.snapshot()).settings.language, "en");
+    let rejected = false;
+    try {
+      await service.saveSettings({ language: "fr" as "en" });
+    } catch {
+      rejected = true;
+    }
+    equal(rejected, true);
+    equal((await service.snapshot()).settings.language, "en");
+  } finally {
+    service.close();
+    await Deno.remove(dir, { recursive: true });
+  }
+});

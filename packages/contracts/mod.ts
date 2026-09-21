@@ -1,4 +1,6 @@
+export type Language = "auto" | "de" | "en";
 export interface Settings {
+  language: Language;
   sourceDir: string;
   backupDir: string;
   autoSync: boolean;

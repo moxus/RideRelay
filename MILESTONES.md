@@ -139,3 +139,15 @@ this workstation runs macOS. MSI is unsigned and intended for testing.
 - Future v* tags follow the same gated build/publication workflow. No Garmin
   credentials are stored in GitHub. Manual Windows GUI installation remains
   open.
+
+## M10 — German and English language support
+
+- Foundation: shared dependency-free translation catalog; automatic system
+  language with English fallback; explicit German/English setting persisted in
+  settings.json. Legacy settings default to auto, invalid choices are rejected.
+- Gate: 22 tests passed, including locale fallback, plural interpolation,
+  catalog coverage and settings migration/persistence; typecheck, lint and
+  formatting.
+- Integration acceptance: language switch, reload, activity/details/login
+  screens, CLI overrides and stable JSON output; browser verification pending in
+  M11.
