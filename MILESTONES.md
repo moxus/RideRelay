@@ -101,3 +101,14 @@ headers for launcher/runtime and MSI compound-file header checked. No additional
 runtime dependency was added; backend uses Windows WebView2. Windows
 installation, vault round-trip, MFA/login and sync remain unverified because
 this workstation runs macOS. MSI is unsigned and intended for testing.
+
+## M9 — GitHub build and distribution
+
+- Scope: public RideRelay repository, pinned GitHub Actions and Deno 2.9.7,
+  native macOS arm64 / Windows x64 checks and installers, SHA-256 checksums.
+- Version tags publish pre-releases only after both build jobs succeed.
+- Gate: formatting, typecheck, lint, full tests, local release asset
+  preparation.
+- Acceptance: successful GitHub run and downloadable first tagged pre-release;
+  pending until remote execution is verified. Native GUI installation on Windows
+  remains a manual acceptance boundary; installers are unsigned.

@@ -1,0 +1,66 @@
+name: Build and release
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: macos-arm64
+            package: package:mac
+            installer: dist/RideRelay.dmg
+          - os: windows-2025
+            platform: windows-x64
+            package: package:windows
+            installer: dist/RideRelay-windows-x64.msi
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.9.7
+      - run: deno task check
+      - run: deno task lint
+      - run: deno fmt --check packages apps scripts deno.json README.md MILESTONES.md .github
+      - run: deno task test
+      - name: Verify Windows credential vault with disposable data
+        if: runner.os == 'Windows'
+        run: deno run --allow-ffi packages/garmin/vault_smoke.ts
+      - run: deno task build:cli
+      - name: Verify compiled CLI with synthetic data
+        shell: bash
+        run: ./dist/riderelay status --demo --data-dir "$RUNNER_TEMP/riderelay-smoke" --json
+      - run: deno task ${{ matrix.package }}
+      - name: Prepare download and checksum
+        run: deno run --allow-read=dist --allow-write=dist scripts/release_assets.ts "${{ matrix.installer }}" "${{ matrix.platform }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: RideRelay-${{ matrix.platform }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 14
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: RideRelay-*
+          merge-multiple: true
+          path: release
+      - name: Publish test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release/* --verify-tag --prerelease --title "RideRelay $RELEASE_TAG" --notes "Testversion für macOS (Apple Silicon) und Windows (x64). Deno muss nicht installiert sein. Die Pakete sind noch nicht signiert/notarisiert. Windows benötigt WebView2. SHA-256-Prüfsummen liegen bei."

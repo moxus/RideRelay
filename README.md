@@ -118,3 +118,22 @@ Ausführung unter Windows noch nicht. Vor einer regulären Freigabe müssen Star
 Ordnerwahl, Login/MFA, Credential Manager (einschließlich Token-Größenlimit),
 Sitzungswiederherstellung und Sync auf einem Windows-Rechner geprüft werden. Den
 tatsächlichen MyWhoosh-Datenordner bei Bedarf in Einstellungen auswählen.
+
+## GitHub-Downloads und Builds
+
+GitHub Actions prüft jeden Push und Pull Request mit Deno 2.9.7 auf macOS und
+Windows und baut die CLI sowie die Desktop-Pakete. Der Windows-Lauf prüft
+zusätzlich Credential Manager mit kurzlebigen synthetischen Daten.
+Garmin-Zugangsdaten werden für die Builds nicht benötigt.
+
+Unter **Actions → Build and release** liegen die DMG für Apple Silicon und die
+Windows-x64-MSI als Build-Artefakte (14 Tage). Ein gepushter Versions-Tag wie
+`v0.1.0` veröffentlicht nach erfolgreichen Builds automatisch ein
+**Pre-release** unter **Releases**, mit Installern und SHA-256-Prüfsummen.
+Releases bleiben über die Artefakt-Aufbewahrungsfrist hinaus verfügbar.
+Versionstags dürfen nicht verschoben werden; Korrekturen erhalten eine neue
+Version.
+
+Die Downloads enthalten Deno. Die Pakete sind derzeit unsigniert; macOS ist
+nicht notarisiert. Windows benötigt WebView2. Der native Windows-Build und der
+Credential-Manager-Test ersetzen noch keinen manuellen Installationstest mit UI.
