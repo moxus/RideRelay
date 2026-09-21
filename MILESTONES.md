@@ -112,3 +112,18 @@ this workstation runs macOS. MSI is unsigned and intended for testing.
 - Acceptance: successful GitHub run and downloadable first tagged pre-release;
   pending until remote execution is verified. Native GUI installation on Windows
   remains a manual acceptance boundary; installers are unsigned.
+
+### M9 build acceptance
+
+- Public repository: https://github.com/moxus/RideRelay (user-selected
+  visibility).
+- GitHub run 35639761971 passed on both macOS arm64 and Windows x64: all 18
+  tests per platform, static gates, compiled CLI demo, packaging and artifact
+  upload. Windows native vault save/read/update/delete also passed.
+- Initial runner failures: Windows CRLF checkout fixed via `.gitattributes`;
+  macOS disk-image creation reported no-space/resource-busy errors. Distribution
+  now uses a native `.app` ZIP made with `ditto`; local DMG packaging remains.
+- Commits: 4ecaf39 (workflow), 71e8e85 (line endings), bec5773 (local DMG
+  capacity), 6215223 (ZIP distribution). First release tag: v0.1.0.
+- Release publication is verified separately after tagging; Windows interactive
+  installation and trusted code signing are still outside automated acceptance.
