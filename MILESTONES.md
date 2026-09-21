@@ -91,3 +91,13 @@ Installer-Abhängigkeit. Lokale ad-hoc-Signatur; keine Developer-ID-Notarisierun
 oder Veröffentlichung. Akzeptanz: erfolgreicher Deno-Paketbuild, hdiutil-Prüfung
 und lesendes Einhängen zur Kontrolle der App samt Programme-Verknüpfung und
 Codesign-Prüfung.
+
+## M8 — Windows x64 MSI (packaging complete, runtime acceptance pending)
+
+Added Windows ICO and package:windows with explicit x86_64-pc-windows-msvc and
+MSI output. Initial cross-build failed during automatic icon selection; explicit
+Windows --icon resolved the image-decoding failure. Successful MSI build, x64 PE
+headers for launcher/runtime and MSI compound-file header checked. No additional
+runtime dependency was added; backend uses Windows WebView2. Windows
+installation, vault round-trip, MFA/login and sync remain unverified because
+this workstation runs macOS. MSI is unsigned and intended for testing.

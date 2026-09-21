@@ -19,3 +19,8 @@ not a perspective mockup. 1024x1024 square canvas. Tile occupies about 88% of
 canvas with standard macOS smooth corners, transparent outside the tile and very
 subtle shadow. Ready-to-use single app icon, no presentation board, no
 surrounding background.
+
+`riderelay.ico` contains the same PNG image at 16, 32, 128 and 256px for
+Windows. The Windows task passes --icon explicitly because Deno 2.9.7
+cross-compilation from macOS failed to decode the automatically selected
+platform icon.

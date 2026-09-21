@@ -105,3 +105,16 @@ Das Paket ist lokal ad hoc signiert und nicht notarisiert. Für öffentliche
 Downloads ohne die üblichen macOS-Vertrauenswarnungen sind Apple Developer ID
 und Notarisierung separat erforderlich. Es wird nichts automatisch
 veröffentlicht.
+
+## Windows-Paket (Testversion)
+
+`deno task package:windows` erzeugt `dist/RideRelay-windows-x64.msi`, auch vom
+Mac aus. Das MSI installiert die x64-App; Deno ist im Paket enthalten. Die
+Oberfläche verwendet Microsoft WebView2, das auf dem Zielgerät verfügbar sein
+muss. Das Paket ist nicht mit einem Windows-Herausgeberzertifikat signiert.
+
+Build und x64-Dateiformate wurden auf macOS geprüft, die Installation und
+Ausführung unter Windows noch nicht. Vor einer regulären Freigabe müssen Start,
+Ordnerwahl, Login/MFA, Credential Manager (einschließlich Token-Größenlimit),
+Sitzungswiederherstellung und Sync auf einem Windows-Rechner geprüft werden. Den
+tatsächlichen MyWhoosh-Datenordner bei Bedarf in Einstellungen auswählen.
