@@ -27,7 +27,7 @@ jobs:
           deno-version: v2.9.7
       - run: deno task check
       - run: deno task lint
-      - run: deno fmt --check packages apps scripts deno.json README.md MILESTONES.md .github
+      - run: deno fmt --check packages apps scripts deno.json README.md .github
       - run: deno task test
       - name: Verify Windows credential vault with disposable data
         if: runner.os == 'Windows'

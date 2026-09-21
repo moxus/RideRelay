@@ -24,9 +24,8 @@ deno task cli sync         # alle bereiten Fahrten tatsächlich übertragen
 deno task cli watch        # neue Fahrten synchronisieren, bis Strg+C
 ```
 
-Alternativ startet `Garmin-Login.command` den interaktiven Login. Passwörter
-gehören nicht in Kommandozeilenargumente, Dateien oder Chat. Desktop-Anmeldung
-befindet sich unter Einstellungen. Die Demo sendet keine Fahrten an Garmin.
+Die Desktop-Anmeldung befindet sich unter Einstellungen. Die Demo verwendet
+Beispieldaten und sendet keine Fahrten an Garmin.
 
 ```sh
 deno task cli settings --source /absoluter/MyWhoosh/Ordner --backup /absoluter/Sicherungsordner
@@ -56,8 +55,7 @@ Desktop-Schalter.
 - Verlauf: `sync.sqlite` im selben Verzeichnis; Windows nutzt
   `%LOCALAPPDATA%/RideRelay`.
 - Tokens: macOS Keychain bzw. Windows Credential Manager; kein gespeichertes
-  Passwort. Windows-Tresor ist implementiert, aber auf dieser Plattform nicht
-  laufzeitgeprüft. Linux hat derzeit keinen produktiven Token-Tresor.
+  Passwort. Linux hat derzeit keinen produktiven Token-Tresor.
 - FIT-Originale werden vor dem Upload unverändert unter ihrem SHA-256-Hash
   gesichert. Der Sicherungsordner benötigt ein Dateisystem mit
   Hardlink-Unterstützung.
@@ -92,11 +90,10 @@ Origin-/Host-Prüfung und benutzerdefiniertem Header gegen fremde Webseiten.
 FFI-Zugriff wird für den nativen Betriebssystem-Tresor benötigt; Desktop nutzt
 Prozesse nur für Ordnerwahl und Öffnen.
 
-18 automatisierte Tests prüfen FIT/Backup/Persistenz/Deduplizierung,
-konkurrierende Uploads, Garmin-Protokoll/MFA/Refresh/Fehler und lokale
-API-Abschirmung. Der Schlüsselbund wurde mit wegwerfbaren Testdaten geprüft.
-Echte Garmin-Uploads sind kein Teil automatisierter Tests. Siehe `MILESTONES.md`
-und `design-qa.md` für die Abnahme und verbleibende Live-Prüfungen.
+Automatisierte Tests prüfen FIT/Backup/Persistenz/Deduplizierung, konkurrierende
+Uploads, Garmin-Protokoll/MFA/Refresh/Fehler und lokale API-Abschirmung. Der
+Schlüsselbund wurde mit wegwerfbaren Testdaten geprüft. Echte Garmin-Uploads
+sind kein Teil automatisierter Tests.
 
 ## macOS-Paket
 
@@ -117,11 +114,12 @@ Mac aus. Das MSI installiert die x64-App; Deno ist im Paket enthalten. Die
 Oberfläche verwendet Microsoft WebView2, das auf dem Zielgerät verfügbar sein
 muss. Das Paket ist nicht mit einem Windows-Herausgeberzertifikat signiert.
 
-Build und x64-Dateiformate wurden auf macOS geprüft, die Installation und
-Ausführung unter Windows noch nicht. Vor einer regulären Freigabe müssen Start,
-Ordnerwahl, Login/MFA, Credential Manager (einschließlich Token-Größenlimit),
-Sitzungswiederherstellung und Sync auf einem Windows-Rechner geprüft werden. Den
-tatsächlichen MyWhoosh-Datenordner bei Bedarf in Einstellungen auswählen.
+Build, CLI und Credential Manager werden auf Windows in GitHub Actions geprüft.
+Der manuelle Installationstest der Desktop-App steht noch aus. Vor einer
+regulären Freigabe müssen Start, Ordnerwahl, Login/MFA, Credential Manager
+(einschließlich Token-Größenlimit), Sitzungswiederherstellung und Sync auf einem
+Windows-Rechner geprüft werden. Den tatsächlichen MyWhoosh-Datenordner bei
+Bedarf in Einstellungen auswählen.
 
 ## GitHub-Downloads und Builds
 

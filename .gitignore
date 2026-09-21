@@ -5,3 +5,13 @@ node_modules/
 dist/
 .worktrees/
 *.sqlite*
+
+# Internal planning, design exploration and retired spike entry points
+/MILESTONES.md
+/design-qa.md
+/design/
+/spike/
+/spikes/
+/Garmin-Login.command
+/scripts/garmin_login.ts
+/scripts/inspect_fit.ts

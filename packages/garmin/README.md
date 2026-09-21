@@ -18,10 +18,9 @@ reconciliation with Garmin before another try.
 Keychain or Windows Credential Manager via Deno FFI. It requires `--allow-ffi`
 (Deno's unsafe pointer APIs require the unscoped permission). There is no
 plaintext fallback. `MemoryTokenStore` is explicitly for ephemeral sessions and
-tests. The macOS vault was tested with disposable synthetic credentials. The
-Windows 64-bit implementation is type-checked but needs a Windows runtime
-acceptance test; its native credential blob limit is 2560 bytes. Linux is
-explicitly unsupported for persistent credentials.
+tests. Both native vaults are tested with disposable synthetic credentials;
+Windows is covered by GitHub Actions. The Windows credential blob limit is 2560
+bytes. Linux is explicitly unsupported for persistent credentials.
 
 Run:
 
@@ -33,10 +32,9 @@ deno run --allow-ffi packages/garmin/vault_smoke.ts
 The vault smoke test uses a random account namespace, verifies
 create/read/update, and deletes the synthetic credential in a `finally` block.
 It never touches the real Garmin session. Unit tests cover protocol requests and
-error classification with synthetic responses. They do not establish live Garmin
-acceptance: login, MFA, refresh and upload through this independent
-implementation still require a real-account test. A live upload creates an
-activity and is not part of tests.
+error classification with synthetic responses. They do not replace real-account
+acceptance of login, MFA, refresh and upload. A live upload creates an activity
+and is not part of automated tests.
 
 Protocol references (facts and wire formats, independently implemented):
 
