@@ -23,7 +23,8 @@
     "build:cli": "deno compile --allow-read --allow-write --allow-env --allow-ffi --allow-net=sso.garmin.com,diauth.garmin.com,connectapi.garmin.com --output dist/riderelay apps/cli/main.ts",
     "build:desktop": "deno desktop --backend webview --include apps/desktop/public --output dist/RideRelay --allow-read --allow-write --allow-env --allow-ffi --allow-run --allow-net=127.0.0.1,sso.garmin.com,diauth.garmin.com,connectapi.garmin.com apps/desktop/main.ts",
     "package:mac": "deno task build:desktop && deno run --allow-read --allow-write --allow-run=hdiutil scripts/package_mac.ts",
-    "package:windows": "deno desktop --backend webview --include apps/desktop/public --icon apps/desktop/assets/riderelay.ico --target x86_64-pc-windows-msvc --output dist/RideRelay-windows-x64.msi --allow-read --allow-write --allow-env --allow-ffi --allow-run --allow-net=127.0.0.1,sso.garmin.com,diauth.garmin.com,connectapi.garmin.com apps/desktop/main.ts"
+    "package:windows": "deno desktop --backend webview --include apps/desktop/public --icon apps/desktop/assets/riderelay.ico --target x86_64-pc-windows-msvc --output dist/RideRelay-windows-x64.msi --allow-read --allow-write --allow-env --allow-ffi --allow-run --allow-net=127.0.0.1,sso.garmin.com,diauth.garmin.com,connectapi.garmin.com apps/desktop/main.ts",
+    "package:mac:zip": "deno task build:desktop && ditto -c -k --sequesterRsrc --keepParent dist/RideRelay.app dist/RideRelay-macos-arm64.zip"
   },
   "desktop": {
     "app": {

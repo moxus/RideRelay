@@ -3,7 +3,7 @@ const [installer, platform] = Deno.args;
 if (!installer || !["macos-arm64", "windows-x64"].includes(platform)) {
   throw new Error("Expected installer path and supported release platform");
 }
-const extension = platform === "macos-arm64" ? "dmg" : "msi";
+const extension = platform === "macos-arm64" ? "zip" : "msi";
 const name = `RideRelay-${platform}.${extension}`;
 const bytes = await Deno.readFile(installer);
 if (!bytes.length) throw new Error("Empty installer");

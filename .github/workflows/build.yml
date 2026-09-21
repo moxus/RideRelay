@@ -13,8 +13,8 @@ jobs:
         include:
           - os: macos-15
             platform: macos-arm64
-            package: package:mac
-            installer: dist/RideRelay.dmg
+            package: package:mac:zip
+            installer: dist/RideRelay-macos-arm64.zip
           - os: windows-2025
             platform: windows-x64
             package: package:windows

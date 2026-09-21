@@ -126,10 +126,10 @@ Windows und baut die CLI sowie die Desktop-Pakete. Der Windows-Lauf prüft
 zusätzlich Credential Manager mit kurzlebigen synthetischen Daten.
 Garmin-Zugangsdaten werden für die Builds nicht benötigt.
 
-Unter **Actions → Build and release** liegen die DMG für Apple Silicon und die
-Windows-x64-MSI als Build-Artefakte (14 Tage). Ein gepushter Versions-Tag wie
-`v0.1.0` veröffentlicht nach erfolgreichen Builds automatisch ein
-**Pre-release** unter **Releases**, mit Installern und SHA-256-Prüfsummen.
+Unter **Actions → Build and release** liegt die App als ZIP für Apple Silicon
+und die Windows-x64-MSI als Build-Artefakte (14 Tage). Ein gepushter
+Versions-Tag wie `v0.1.0` veröffentlicht nach erfolgreichen Builds automatisch
+ein **Pre-release** unter **Releases**, mit Installern und SHA-256-Prüfsummen.
 Releases bleiben über die Artefakt-Aufbewahrungsfrist hinaus verfügbar.
 Versionstags dürfen nicht verschoben werden; Korrekturen erhalten eine neue
 Version.
@@ -137,3 +137,8 @@ Version.
 Die Downloads enthalten Deno. Die Pakete sind derzeit unsigniert; macOS ist
 nicht notarisiert. Windows benötigt WebView2. Der native Windows-Build und der
 Credential-Manager-Test ersetzen noch keinen manuellen Installationstest mit UI.
+
+Auf GitHub wird die macOS-App als ZIP verteilt: entpacken und RideRelay.app nach
+Programme ziehen. Die lokale DMG-Erstellung bleibt mit `deno task package:mac`
+verfügbar; GitHubs macOS-Runner melden beim Mounten der Images wiederholt
+Fehler.
