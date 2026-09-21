@@ -1,12 +1,16 @@
 import { isAbsolute } from "node:path";
 
-export async function pickFolder(): Promise<string | null> {
+export async function pickFolder(language = "de"): Promise<string | null> {
   let cmd: Deno.Command;
   if (Deno.build.os === "darwin") {
     cmd = new Deno.Command("/usr/bin/osascript", {
       args: [
         "-e",
-        'activate\ntry\nreturn POSIX path of (choose folder with prompt "Ordner für RideRelay wählen")\non error number -128\nreturn ""\nend try',
+        `activate\ntry\nreturn POSIX path of (choose folder with prompt "${
+          language === "en"
+            ? "Choose a folder for RideRelay"
+            : "Ordner für RideRelay wählen"
+        }")\non error number -128\nreturn ""\nend try`,
       ],
       stdout: "piped",
       stderr: "null",

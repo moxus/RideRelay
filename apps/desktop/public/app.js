@@ -1,3 +1,4 @@
+import { localeFor, resolveLanguage, translate } from "/i18n.js";
 const $ = (selector) => document.querySelector(selector);
 const content = $("#content");
 const details = $("#details");
@@ -14,15 +15,19 @@ let authState = "idle";
 let authCancellation = Promise.resolve();
 let returnFocus = null;
 let lastDetails = "";
-const number = new Intl.NumberFormat("de-AT", { maximumFractionDigits: 2 });
-const statuses = {
-  ready: "Bereit",
-  syncing: "Wird übertragen",
-  synced: "Synchronisiert",
-  duplicate: "Bereits bei Garmin",
-  failed: "Übertragung fehlgeschlagen",
-  uncertain: "Status prüfen",
-};
+let language = resolveLanguage("auto", navigator.language);
+let number = new Intl.NumberFormat(localeFor(language), {
+  maximumFractionDigits: 2,
+});
+const t = (message, values) => translate(language, message, values);
+const statuses = () => ({
+  ready: t("Bereit"),
+  syncing: t("Wird übertragen"),
+  synced: t("Synchronisiert"),
+  duplicate: t("Bereits bei Garmin"),
+  failed: t("Übertragung fehlgeschlagen"),
+  uncertain: t("Status prüfen"),
+});
 const escape = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -39,8 +44,8 @@ const icon = (name, cls = "") =>
 const date = (value) => {
   const d = new Date(value);
   return Number.isNaN(d.getTime())
-    ? "Zeitpunkt unbekannt"
-    : new Intl.DateTimeFormat("de-AT", {
+    ? t("Zeitpunkt unbekannt")
+    : new Intl.DateTimeFormat(localeFor(language), {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -53,13 +58,23 @@ const duration = (seconds) => {
     String(Math.floor(s % 3600 / 60)).padStart(2, "0")
   }:${String(s % 60).padStart(2, "0")}`;
 };
-$("#today").textContent = new Intl.DateTimeFormat("de-AT", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-}).format(new Date());
-$("#today").dateTime = new Date().toISOString().slice(0, 10);
+function localizeShell() {
+  document.documentElement.lang = language;
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-label]").forEach((element) => {
+    element.setAttribute("aria-label", t(element.dataset.i18nLabel));
+  });
+  $("#today").textContent = new Intl.DateTimeFormat(localeFor(language), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+  $("#today").dateTime = new Date().toISOString().slice(0, 10);
+}
+localizeShell();
 async function api(action, params = {}) {
   const response = await fetch(`/api/${action}`, {
     method: "POST",
@@ -69,7 +84,7 @@ async function api(action, params = {}) {
   const result = await response.json();
   if (!response.ok || !result.ok) {
     throw new Error(
-      result.error || "Die Anfrage konnte nicht abgeschlossen werden.",
+      t(result.error) || t("Die Anfrage konnte nicht abgeschlossen werden."),
     );
   }
   return result.data;
@@ -92,10 +107,23 @@ async function refresh() {
   });
   if (!response.ok) {
     throw new Error(
-      "RideRelay ist gerade nicht erreichbar. Bitte prüfe, ob die App läuft.",
+      t("RideRelay ist gerade nicht erreichbar. Bitte prüfe, ob die App läuft."),
     );
   }
   state = await response.json();
+  const nextLanguage = resolveLanguage(
+    state.settings.language,
+    navigator.language,
+  );
+  if (nextLanguage !== language) {
+    language = nextLanguage;
+    number = new Intl.NumberFormat(localeFor(language), {
+      maximumFractionDigits: 2,
+    });
+    localizeShell();
+    lastRender = "";
+    $("#notice").hidden = true;
+  }
   $("#autoSync").checked = state.settings.autoSync;
   $("#autoSync").disabled = pending;
   $("#demo").hidden = !state.demo;
@@ -121,13 +149,13 @@ async function run(action, params = {}, success = "") {
     if (success) notice(success);
     return result;
   } catch (error) {
-    notice(error.message, true);
+    notice(t(error.message), true);
   } finally {
     pending = false;
     try {
       await refresh();
     } catch (error) {
-      notice(error.message, true);
+      notice(t(error.message), true);
       render();
     }
   }
@@ -142,17 +170,20 @@ function status(activity) {
         ? "alert-circle"
         : "refresh",
     )
-  }<span>${escape(statuses[name] || name)}</span></span>`;
+  }<span>${escape(statuses()[name] || name)}</span></span>`;
 }
 function metrics(a) {
   return `<div class="metrics">${
     [
-      [duration(a.duration), "Dauer"],
-      [`${number.format(a.distance / 1000)} km`, "Distanz"],
-      [a.avgPower == null ? "—" : `${Math.round(a.avgPower)} W`, "Ø Leistung"],
+      [duration(a.duration), t("Dauer")],
+      [`${number.format(a.distance / 1000)} km`, t("Distanz")],
+      [
+        a.avgPower == null ? "—" : `${Math.round(a.avgPower)} W`,
+        t("Ø Leistung"),
+      ],
       [
         a.avgHeartRate == null ? "—" : `${Math.round(a.avgHeartRate)} bpm`,
-        "Ø Puls",
+        t("Ø Puls"),
       ],
     ].map(([value, label]) =>
       `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`
@@ -163,13 +194,13 @@ function connection() {
   return `<div class="connection-strip"><div class="platform"><div class="platform-name mywhoosh">MyWhoosh</div><p><span class="dot ${
     state.sourceExists ? "good" : ""
   }"></span>${
-    state.sourceExists ? "Ordner gefunden" : "Ordner einrichten"
+    state.sourceExists ? t("Ordner gefunden") : t("Ordner einrichten")
   }</p></div><div class="bridge">${
     icon("link")
   }</div><div class="platform"><div class="platform-name">GARMIN<small>Connect</small></div><p><span class="dot ${
     state.connected ? "good" : ""
   }"></span>${
-    state.connected ? "Verbunden" : "Nicht verbunden"
+    state.connected ? t("Verbunden") : t("Nicht verbunden")
   }</p></div></div>`;
 }
 function renderActivities() {
@@ -182,60 +213,75 @@ function renderActivities() {
   const issues =
     activities.filter((a) => ["failed", "uncertain"].includes(a.status)).length;
   const subtitle = ready.length
-    ? `${ready.length} ${
-      ready.length === 1 ? "Fahrt bereit" : "Fahrten bereit"
-    } zum Übertragen`
+    ? t(
+      ready.length === 1
+        ? "{count} Fahrt bereit zum Übertragen"
+        : "{count} Fahrten bereit zum Übertragen",
+      { count: ready.length },
+    )
     : syncing
-    ? "Deine Fahrt wird übertragen"
+    ? t("Deine Fahrt wird übertragen")
     : !activities.length
-    ? "Deine Fahrten. Einfach verbunden."
+    ? t("Deine Fahrten. Einfach verbunden.")
     : issues
-    ? `${issues} ${
-      issues === 1 ? "Fahrt benötigt" : "Fahrten benötigen"
-    } deine Aufmerksamkeit`
-    : "Alles synchronisiert";
-  let html =
-    `<h1>Aktivitäten</h1><p class="subtitle">${subtitle}</p>${connection()}`;
+    ? t(
+      issues === 1
+        ? "{count} Fahrt benötigt deine Aufmerksamkeit"
+        : "{count} Fahrten benötigen deine Aufmerksamkeit",
+      { count: issues },
+    )
+    : t("Alles synchronisiert");
+  let html = `<h1>${
+    t("Aktivitäten")
+  }</h1><p class="subtitle">${subtitle}</p>${connection()}`;
   if (featured) {
-    html += `<section class="featured" aria-label="Aktuelle Fahrt">${
+    html += `<section class="featured" aria-label="${t("Aktuelle Fahrt")}">${
       icon("bike", "ride-icon")
     }<div><h2>${
-      syncing ? "Wird mit Garmin synchronisiert" : "Bereit zum Synchronisieren"
-    }</h2><h3>${escape(featured.name)}</h3><p>${
-      date(featured.startedAt)
-    } · Virtuelles Radfahren</p>${
+      syncing
+        ? t("Wird mit Garmin synchronisiert")
+        : t("Bereit zum Synchronisieren")
+    }</h2><h3>${escape(featured.name)}</h3><p>${date(featured.startedAt)} · ${
+      t("Virtuelles Radfahren")
+    }</p>${
       metrics(featured)
     }<div class="actions"><button class="primary" data-action="sync" data-id="${
       escape(featured.id)
     }" ${pending || !state.connected || syncing ? "disabled" : ""}>${
-      syncing ? "Wird übertragen …" : "Jetzt synchronisieren"
+      syncing ? t("Wird übertragen …") : t("Jetzt synchronisieren")
     }</button><button class="text-button" data-details="${
       escape(featured.id)
-    }">Details ansehen ${icon("arrow-right")}</button>${
+    }">${t("Details ansehen")} ${icon("arrow-right")}</button>${
       !state.connected
-        ? '<button class="text-button" data-login>Garmin verbinden</button>'
+        ? `<button class="text-button" data-login>${
+          t("Garmin verbinden")
+        }</button>`
         : ""
     }</div></div></section>`;
   } else if (!activities.length) {
-    html += `<section class="empty">${
-      icon("bike")
-    }<h2>Noch keine Fahrten</h2><p>${
+    html += `<section class="empty">${icon("bike")}<h2>${
+      t("Noch keine Fahrten")
+    }</h2><p>${
       state.sourceExists
-        ? "Nach deiner nächsten MyWhoosh-Fahrt erscheint die FIT-Datei hier. Du kannst den Ordner auch jetzt durchsuchen."
-        : "Wähle in den Einstellungen deinen MyWhoosh-Ordner. RideRelay findet dort deine FIT-Dateien."
+        ? t(
+          "Nach deiner nächsten MyWhoosh-Fahrt erscheint die FIT-Datei hier. Du kannst den Ordner auch jetzt durchsuchen.",
+        )
+        : t(
+          "Wähle in den Einstellungen deinen MyWhoosh-Ordner. RideRelay findet dort deine FIT-Dateien.",
+        )
     }</p><button class="${state.sourceExists ? "outline" : "primary"}" ${
       state.sourceExists ? 'data-action="scan"' : 'data-page="settings"'
     } ${pending ? "disabled" : ""}>${
-      state.sourceExists ? "Nach Fahrten suchen" : "Ordner einrichten"
+      state.sourceExists ? t("Nach Fahrten suchen") : t("Ordner einrichten")
     }</button></section>`;
   }
   const history = activities.filter((a) => a.id !== featured?.id);
-  html += `<div class="history-heading"><h2>Verlauf${
+  html += `<div class="history-heading"><h2>${t("Verlauf")}${
     history.length ? ` <span class="muted">(${history.length})</span>` : ""
   }</h2><button data-action="scan" ${
     pending || state.scanning ? "disabled" : ""
-  } aria-label="Nach neuen Fahrten suchen">${icon("refresh")}${
-    state.scanning ? "Suche …" : "Aktualisieren"
+  } aria-label="${t("Nach neuen Fahrten suchen")}">${icon("refresh")}${
+    state.scanning ? t("Suche …") : t("Aktualisieren")
   }</button></div><div class="history">`;
   html += history.length
     ? history.map((a) =>
@@ -247,7 +293,9 @@ function renderActivities() {
         Math.round(a.duration / 60)
       } min</small></span>${status(a)}${icon("chevron-right")}</button>`
     ).join("")
-    : '<p class="muted">Übertragene Fahrten und ihr Status erscheinen hier.</p>';
+    : `<p class="muted">${
+      t("Übertragene Fahrten und ihr Status erscheinen hier.")
+    }</p>`;
   return html + "</div>";
 }
 function folder(kind, title, description) {
@@ -258,58 +306,79 @@ function folder(kind, title, description) {
     icon("folder")
   }<input type="text" id="${kind}" name="path" value="${
     escape(state.settings[kind])
-  }" placeholder="Ordnerpfad eingeben" aria-label="${title}" required></label><button class="secondary" type="button" data-folder="${kind}" ${
+  }" placeholder="${
+    t("Ordnerpfad eingeben")
+  }" aria-label="${title}" required></label><button class="secondary" type="button" data-folder="${kind}" ${
     pending ? "disabled" : ""
-  }>Auswählen</button><button class="outline save-path" type="submit" ${
+  }>${t("Auswählen")}</button><button class="outline save-path" type="submit" ${
     pending ? "disabled" : ""
-  }>Speichern</button></form>${
+  }>${t("Speichern")}</button></form>${
     source
       ? `<div class="folder-state">${
         icon(state.sourceExists ? "check" : "alert-circle")
       }${
         state.sourceExists
-          ? `Ordner gefunden · ${state.activities.length} FIT-${
-            state.activities.length === 1 ? "Datei" : "Dateien"
-          } erkannt`
-          : "Ordner noch nicht gefunden"
+          ? t(
+            state.activities.length === 1
+              ? "Ordner gefunden · {count} FIT-Datei erkannt"
+              : "Ordner gefunden · {count} FIT-Dateien erkannt",
+            { count: state.activities.length },
+          )
+          : t("Ordner noch nicht gefunden")
       }</div>`
       : ""
   }</div></section>`;
 }
 function renderSettings() {
-  return `<h1>Einstellungen</h1><p class="subtitle">Verbindungen und Speicherorte verwalten.</p><section class="settings-section"><div class="platform-name account-brand">GARMIN<small>Connect</small></div><div class="account"><div class="account-info"><h2>Garmin Connect</h2><div class="connection-state"><span class="dot ${
+  return `<h1>${t("Einstellungen")}</h1><p class="subtitle">${
+    t("Verbindungen und Speicherorte verwalten.")
+  }</p><section class="settings-section">${
+    icon("settings", "section-icon")
+  }<div><h2><label for="language">${t("Sprache")}</label></h2><p>${
+    t("Die Sprache gilt für Oberfläche und CLI.")
+  }</p><select id="language" ${pending ? "disabled" : ""}>${
+    [["auto", t("Systemsprache")], ["de", "Deutsch"], ["en", "English"]].map((
+      [value, label],
+    ) =>
+      `<option value="${value}" ${
+        state.settings.language === value ? "selected" : ""
+      }>${label}</option>`
+    ).join("")
+  }</select></div></section><section class="settings-section"><div class="platform-name account-brand">GARMIN<small>Connect</small></div><div class="account"><div class="account-info"><h2>Garmin Connect</h2><div class="connection-state"><span class="dot ${
     state.connected ? "good" : ""
-  }"></span>${state.connected ? "Verbunden" : "Nicht verbunden"}</div><p>${
+  }"></span>${
+    state.connected ? t("Verbunden") : t("Nicht verbunden")
+  }</div><p>${
     state.connected
-      ? "Dein Garmin-Konto ist bereit."
-      : "Verbinde dein Konto, um Fahrten zu übertragen."
+      ? t("Dein Garmin-Konto ist bereit.")
+      : t("Verbinde dein Konto, um Fahrten zu übertragen.")
   }</p></div>${
     state.connected
       ? `<button class="outline" data-action="checkConnection" ${
         pending ? "disabled" : ""
-      }>Verbindung prüfen</button><button data-action="logout" ${
+      }>${t("Verbindung prüfen")}</button><button data-action="logout" ${
         pending ? "disabled" : ""
-      }>Abmelden</button>`
-      : '<button class="primary" data-login>Anmelden</button>'
+      }>${t("Abmelden")}</button>`
+      : `<button class="primary" data-login>${t("Anmelden")}</button>`
   }</div></section>${
     folder(
       "sourceDir",
-      "MyWhoosh-Ordner",
-      "Hier sucht RideRelay nach neuen Aktivitäten.",
+      t("MyWhoosh-Ordner"),
+      t("Hier sucht RideRelay nach neuen Aktivitäten."),
     )
   }${
     folder(
       "backupDir",
-      "Sicherungskopien",
-      "Originaldateien werden vor dem Übertragen gesichert.",
+      t("Sicherungskopien"),
+      t("Originaldateien werden vor dem Übertragen gesichert."),
     )
   }<section class="settings-section">${
     icon("bell", "section-icon")
-  }<div class="notifications"><h2>Benachrichtigungen</h2>${
-    [["notifySuccess", "Bei erfolgreichem Sync informieren"], [
+  }<div class="notifications"><h2>${t("Benachrichtigungen")}</h2>${
+    [["notifySuccess", t("Bei erfolgreichem Sync informieren")], [
       "notifyFailure",
-      "Bei Problemen informieren",
-    ], ["autoSync", "Automatischer Sync, während RideRelay läuft"]].map((
+      t("Bei Problemen informieren"),
+    ], ["autoSync", t("Automatischer Sync, während RideRelay läuft")]].map((
       [key, label],
     ) =>
       `<label class="toggle-row" for="setting-${key}"><span>${label}</span><input type="checkbox" role="switch" id="setting-${key}" data-setting="${key}" ${
@@ -340,8 +409,8 @@ function render() {
   }
   lastRender = JSON.stringify([page, state, pending]);
   $("#footnote").textContent = page === "activities"
-    ? "Originaldateien bleiben erhalten."
-    : "Schalter werden automatisch gespeichert.";
+    ? t("Originaldateien bleiben erhalten.")
+    : t("Schalter werden automatisch gespeichert.");
   document.querySelectorAll("nav [data-page]").forEach((button) => {
     if (button.dataset.page === page) {
       button.setAttribute("aria-current", "page");
@@ -356,51 +425,57 @@ function renderDetails() {
     return;
   }
   const html =
-    `<button class="icon-button close" data-close="details" aria-label="Details schließen">${
-      icon("x")
-    }</button>${icon("bike", "ride-icon")}<h2 id="detail-title">${
+    `<button class="icon-button close" data-close="details" aria-label="${
+      t("Details schließen")
+    }">${icon("x")}</button>${icon("bike", "ride-icon")}<h2 id="detail-title">${
       escape(a.name)
-    }</h2><p class="muted">${date(a.startedAt)} · Virtuelles Radfahren</p>${
-      status(a)
-    }${metrics(a)}${
-      a.error ? `<p class="detail-error">${escape(a.error)}</p>` : ""
+    }</h2><p class="muted">${date(a.startedAt)} · ${
+      t("Virtuelles Radfahren")
+    }</p>${status(a)}${metrics(a)}${
+      a.error ? `<p class="detail-error">${escape(t(a.error))}</p>` : ""
     }${
       a.status === "uncertain"
-        ? '<p class="detail-error">Garmin hat die Übertragung nicht eindeutig bestätigt. Prüfe dein Garmin-Konto, bevor du diese Fahrt erneut überträgst. RideRelay startet keinen automatischen Wiederholungsversuch.</p>'
+        ? `<p class="detail-error">${
+          t("Garmin hat die Übertragung nicht eindeutig bestätigt. Prüfe dein Garmin-Konto, bevor du diese Fahrt erneut überträgst. RideRelay startet keinen automatischen Wiederholungsversuch.")
+        }</p>`
         : ""
-    }<dl class="detail-list"><dt>Ø Kadenz</dt><dd>${
+    }<dl class="detail-list"><dt>${t("Ø Kadenz")}</dt><dd>${
       a.avgCadence == null
-        ? "Nicht vorhanden"
+        ? t("Nicht vorhanden")
         : `${Math.round(a.avgCadence)} rpm`
-    }</dd><dt>Originaldatei</dt><dd>${
-      escape(a.sourcePath)
-    }</dd><dt>Sicherungsdatei</dt><dd>${
-      escape(a.backupPath || "Wird vor dem Übertragen erstellt")
-    }</dd><dt>Übertragungsversuche</dt><dd>${a.attempts}</dd>${
-      a.syncedAt ? `<dt>Synchronisiert</dt><dd>${date(a.syncedAt)}</dd>` : ""
+    }</dd><dt>${t("Originaldatei")}</dt><dd>${escape(a.sourcePath)}</dd><dt>${
+      t("Sicherungsdatei")
+    }</dt><dd>${
+      escape(a.backupPath || t("Wird vor dem Übertragen erstellt"))
+    }</dd><dt>${t("Übertragungsversuche")}</dt><dd>${a.attempts}</dd>${
+      a.syncedAt
+        ? `<dt>${t("Synchronisiert")}</dt><dd>${date(a.syncedAt)}</dd>`
+        : ""
     }${
       a.garminId
-        ? `<dt>Garmin-Aktivitäts-ID</dt><dd>${escape(a.garminId)}</dd>`
+        ? `<dt>${t("Garmin-Aktivitäts-ID")}</dt><dd>${escape(a.garminId)}</dd>`
         : ""
     }</dl><div class="actions">${
       ["ready", "failed"].includes(a.status)
         ? `<button class="primary" data-action="sync" data-id="${
           escape(a.id)
         }" ${pending || !state.connected ? "disabled" : ""}>${
-          a.status === "failed" ? "Erneut versuchen" : "Jetzt synchronisieren"
+          a.status === "failed"
+            ? t("Erneut versuchen")
+            : t("Jetzt synchronisieren")
         }</button>`
         : ""
     }${
       a.backupPath
         ? `<button class="outline" data-action="openBackup" data-id="${
           escape(a.id)
-        }">Sicherung öffnen</button>`
+        }">${t("Sicherung öffnen")}</button>`
         : ""
     }${
       a.garminId
         ? `<button class="outline" data-action="openGarmin" data-id="${
           escape(a.id)
-        }">In Garmin öffnen ${icon("arrow-right")}</button>`
+        }">${t("In Garmin öffnen")} ${icon("arrow-right")}</button>`
         : ""
     }</div>`;
   if (lastDetails !== html) {
@@ -417,7 +492,7 @@ async function openLogin() {
   $("#mfa-form").hidden = true;
   $("#login-status").textContent = "";
   $("#login-form button").disabled = true;
-  $("#login-status").textContent = "Anmeldestatus wird geprüft …";
+  $("#login-status").textContent = t("Anmeldestatus wird geprüft …");
   $("#password").value = "";
   $("#mfa-code").value = "";
   openDialog(login);
@@ -445,17 +520,17 @@ document.addEventListener("click", async (event) => {
       await run(
         "settings",
         { settings: { [kind]: result.path } },
-        "Ordner gespeichert.",
+        t("Ordner gespeichert."),
       );
     }
   } else if (button.dataset.action) {
     const action = button.dataset.action;
     const message = action === "checkConnection"
-      ? "Die Verbindung zu Garmin funktioniert."
+      ? t("Die Verbindung zu Garmin funktioniert.")
       : action === "logout"
-      ? "Von Garmin abgemeldet."
+      ? t("Von Garmin abgemeldet.")
       : action === "scan"
-      ? "Ordner durchsucht."
+      ? t("Ordner durchsucht.")
       : "";
     await run(
       action,
@@ -465,6 +540,11 @@ document.addEventListener("click", async (event) => {
   }
 });
 document.addEventListener("change", async (event) => {
+  if (event.target.id === "language") {
+    await run("settings", { settings: { language: event.target.value } });
+    $("#language").focus();
+    return;
+  }
   const key = event.target.id === "autoSync"
     ? "autoSync"
     : event.target.dataset.setting;
@@ -472,7 +552,7 @@ document.addEventListener("change", async (event) => {
     await run(
       "settings",
       { settings: { [key]: event.target.checked } },
-      "Einstellung gespeichert.",
+      t("Einstellung gespeichert."),
     );
   }
 });
@@ -485,7 +565,7 @@ document.addEventListener("submit", async (event) => {
     await run(
       "settings",
       { settings: { [kind]: path } },
-      "Ordner gespeichert.",
+      t("Ordner gespeichert."),
     );
   }
 });
@@ -505,7 +585,7 @@ for (const dialog of [details, login]) {
       if (authState === "mfa") {
         authState = "idle";
         authCancellation = api("cancelLogin").catch((error) =>
-          notice(error.message, true)
+          notice(t(error.message), true)
         );
       }
       $("#password").value = "";
@@ -539,7 +619,7 @@ async function pollAuth() {
     if (!login.open) return;
     if (result.status === "passed") {
       login.close();
-      notice("Mit Garmin verbunden.");
+      notice(t("Mit Garmin verbunden."));
       await refresh();
       return;
     }
@@ -554,22 +634,24 @@ async function pollAuth() {
       $("#login-form").hidden = true;
       $("#mfa-form").hidden = true;
       $("#login-form button").disabled = true;
-      $("#login-status").textContent = "Anmeldung läuft …";
+      $("#login-status").textContent = t("Anmeldung läuft …");
     }
     if (result.status === "failed") {
-      throw new Error(result.error || "Anmeldung fehlgeschlagen.");
+      throw new Error(t(result.error) || t("Anmeldung fehlgeschlagen."));
     }
     if (result.status === "mfa") {
       const newlyVisible = $("#mfa-form").hidden;
       $("#login-form").hidden = true;
       $("#mfa-form").hidden = false;
       $("#mfa-form button").disabled = false;
-      $("#login-status").textContent = "Bestätigung durch Garmin erforderlich.";
+      $("#login-status").textContent = t(
+        "Bestätigung durch Garmin erforderlich.",
+      );
       if (newlyVisible) $("#mfa-code").focus();
     }
     authTimer = setTimeout(pollAuth, 1000);
   } catch (error) {
-    $("#login-status").textContent = error.message;
+    $("#login-status").textContent = t(error.message);
     $("#login-form").hidden = false;
     $("#mfa-form").hidden = true;
     $("#login-form button").disabled = false;
@@ -581,7 +663,7 @@ $("#login-form").addEventListener("submit", async (event) => {
   authState = "running";
   clearTimeout(authTimer);
   $("#login-form button").disabled = true;
-  $("#login-status").textContent = "Anmeldung läuft …";
+  $("#login-status").textContent = t("Anmeldung läuft …");
   const email = $("#email").value.trim(), password = $("#password").value;
   $("#password").value = "";
   try {
@@ -589,7 +671,7 @@ $("#login-form").addEventListener("submit", async (event) => {
     await pollAuth();
   } catch (error) {
     authState = "failed";
-    $("#login-status").textContent = error.message;
+    $("#login-status").textContent = t(error.message);
     $("#login-form button").disabled = false;
   }
 });
@@ -597,7 +679,7 @@ $("#mfa-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   clearTimeout(authTimer);
   $("#mfa-form button").disabled = true;
-  $("#login-status").textContent = "Code wird geprüft …";
+  $("#login-status").textContent = t("Code wird geprüft …");
   authState = "running";
   const code = $("#mfa-code").value.trim();
   $("#mfa-code").value = "";
@@ -605,12 +687,12 @@ $("#mfa-form").addEventListener("submit", async (event) => {
     await api("mfa", { code });
     await pollAuth();
   } catch (error) {
-    $("#login-status").textContent = error.message;
+    $("#login-status").textContent = t(error.message);
     $("#mfa-form button").disabled = false;
   }
 });
-await refresh().catch((error) => notice(error.message, true));
+await refresh().catch((error) => notice(t(error.message), true));
 setInterval(
-  () => refresh().catch((error) => notice(error.message, true)),
+  () => refresh().catch((error) => notice(t(error.message), true)),
   3000,
 );

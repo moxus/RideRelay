@@ -1,3 +1,4 @@
+import { resolveLanguage, translate } from "../shared/i18n.js";
 import { createApplication } from "../shared/application.ts";
 import { parseArguments } from "../shared/arguments.ts";
 import { notify } from "../shared/native.ts";
@@ -31,15 +32,28 @@ const notifications = setInterval(async () => {
   notifying = true;
   try {
     const state = await service.snapshot();
+    const language = resolveLanguage(state.settings.language);
     for (const activity of state.activities) {
       if (!seen || seen.get(activity.id) === activity.status) continue;
       if (activity.status === "synced" && state.settings.notifySuccess) {
-        notify("RideRelay", `${activity.name} wurde übertragen.`);
+        notify(
+          "RideRelay",
+          translate(language, "{ride} wurde übertragen.", {
+            ride: activity.name,
+          }),
+        );
       }
       if (
         ["failed", "uncertain"].includes(activity.status) &&
         state.settings.notifyFailure
-      ) notify("RideRelay", `${activity.name}: Bitte den Status prüfen.`);
+      ) {
+        notify(
+          "RideRelay",
+          translate(language, "{ride}: Bitte den Status prüfen.", {
+            ride: activity.name,
+          }),
+        );
+      }
     }
     seen = new Map(state.activities.map((a) => [a.id, a.status]));
   } catch {

@@ -1,3 +1,4 @@
+import { resolveLanguage } from "../shared/i18n.js";
 import type {
   GarminAdapter,
   SyncService,
@@ -9,7 +10,7 @@ export function createHandler(
   garmin: GarminAdapter,
   opts: {
     publicDir?: URL;
-    pickFolder?: () => Promise<string | null>;
+    pickFolder?: typeof pickFolder;
     openExternal?: typeof openExternal;
   } = {},
 ) {
@@ -182,7 +183,11 @@ export function createHandler(
             data = auth;
             break;
           case "/api/pickFolder":
-            data = { path: await (opts.pickFolder ?? pickFolder)() };
+            data = {
+              path: await (opts.pickFolder ?? pickFolder)(
+                resolveLanguage((await service.snapshot()).settings.language),
+              ),
+            };
             break;
           case "/api/openBackup":
           case "/api/openGarmin": {
@@ -226,7 +231,11 @@ export function createHandler(
       return new Response(null, { status: 404, headers });
     }
     try {
-      const file = await Deno.readFile(new URL(path, publicDir));
+      const file = await Deno.readFile(
+        path === "i18n.js"
+          ? new URL("../shared/i18n.js", import.meta.url)
+          : new URL(path, publicDir),
+      );
       const ext = path.split(".").pop();
       const types: Record<string, string> = {
         html: "text/html; charset=utf-8",

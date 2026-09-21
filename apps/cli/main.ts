@@ -1,7 +1,14 @@
+import { localeFor, resolveLanguage, translate } from "../shared/i18n.js";
+import { defaultDataDir } from "../../packages/core/mod.ts";
+import { join } from "node:path";
+import type { Language } from "../../packages/contracts/mod.ts";
 import { createApplication } from "../shared/application.ts";
 import { parseArguments } from "../shared/arguments.ts";
 import { createPrompt } from "../shared/prompt.ts";
 import type { Activity } from "../../packages/contracts/mod.ts";
+
+let language = resolveLanguage();
+const t = (message: string) => translate(language, message);
 
 const help =
   `RideRelay — MyWhoosh-Aktivitäten lokal sichern und zu Garmin übertragen.
@@ -9,6 +16,7 @@ const help =
 riderelay status | scan | reconcile | sync [--id ID] [--dry-run] | watch
 riderelay login | logout | settings [--source ORDNER] [--backup ORDNER]
 
+--language SPRACHE  auto, de oder en (settings speichert die Auswahl)
 --json             Maschinenlesbare Ausgabe
 --data-dir ORDNER  Separater Ordner für Einstellungen und Verlauf
 --demo             Isolierte Beispieldaten, keine Garmin-Uploads
@@ -19,8 +27,25 @@ Passwort und MFA werden ausschließlich interaktiv abgefragt.`;
 export async function main(args: string[]) {
   const { positional, options } = parseArguments(args);
   const command = positional[0] ?? "status";
+  if (
+    options.language && !["auto", "de", "en"].includes(String(options.language))
+  ) {
+    throw new Error(t("Ungültige Sprache. Erlaubt: auto, de, en."));
+  }
+  let preference = "auto";
+  try {
+    const dir = String(
+      options["data-dir"] ??
+        (options.demo ? ".local/demo" : defaultDataDir()),
+    );
+    preference = JSON.parse(await Deno.readTextFile(join(dir, "settings.json")))
+      .language ?? "auto";
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) throw error;
+  }
+  language = resolveLanguage(String(options.language ?? preference));
   if (options.help || command === "help") {
-    console.log(help);
+    console.log(t(help));
     return;
   }
   if (
@@ -36,7 +61,7 @@ export async function main(args: string[]) {
       "settings",
     ]
       .includes(command)
-  ) throw new Error("Unbekannter Befehl. Hilfe: riderelay --help");
+  ) throw new Error(t("Unbekannter Befehl. Hilfe: riderelay --help"));
   const { garmin, service } = await createApplication({
     demo: options.demo === true,
     dataDir: options["data-dir"] as string | undefined,
@@ -51,13 +76,27 @@ export async function main(args: string[]) {
     );
   const rides = (items: Activity[]) => {
     if (options.json) return print(items);
-    if (!items.length) return print("Keine Aktivitäten gefunden.");
+    if (!items.length) return print(t("Keine Aktivitäten gefunden."));
     for (const item of items) {
       console.log(
-        `${item.status.padEnd(10)} ${item.name} · ${
-          (item.distance / 1000).toFixed(1)
+        `${
+          t(
+            ({
+              ready: "Bereit",
+              syncing: "Wird übertragen",
+              synced: "Synchronisiert",
+              duplicate: "Bereits bei Garmin",
+              failed: "Übertragung fehlgeschlagen",
+              uncertain: "Status prüfen",
+            })[item.status],
+          ).padEnd(16)
+        } ${item.name} · ${
+          new Intl.NumberFormat(localeFor(language), {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          }).format(item.distance / 1000)
         } km · ${Math.round(item.duration / 60)} min\n           ${item.id}${
-          item.error ? `\n           ${item.error}` : ""
+          item.error ? `\n           ${t(item.error)}` : ""
         }`,
       );
     }
@@ -67,20 +106,20 @@ export async function main(args: string[]) {
       case "login": {
         if (options.json) {
           throw new Error(
-            "login benötigt ein interaktives Terminal ohne --json.",
+            t("login benötigt ein interaktives Terminal ohne --json."),
           );
         }
         const terminal = createPrompt();
         try {
-          const email = await terminal.ask("Garmin E-Mail: ");
-          const password = await terminal.ask("Passwort: ", true);
+          const email = await terminal.ask(t("Garmin E-Mail: "));
+          const password = await terminal.ask(t("Passwort: "), true);
           await garmin.login(
             email,
             password,
-            () => terminal.ask("MFA-Code: ", true),
+            () => terminal.ask(t("MFA-Code: "), true),
           );
           print(
-            "Bei Garmin angemeldet. Sitzung im Betriebssystem-Tresor gespeichert.",
+            t("Bei Garmin angemeldet. Sitzung im Betriebssystem-Tresor gespeichert."),
           );
         } finally {
           terminal.close();
@@ -89,11 +128,14 @@ export async function main(args: string[]) {
       }
       case "logout":
         await garmin.logout();
-        print("Garmin-Sitzung entfernt.");
+        print(t("Garmin-Sitzung entfernt."));
         break;
       case "settings":
         print(
           await service.saveSettings({
+            ...(options.language
+              ? { language: String(options.language) as Language }
+              : {}),
             ...(options.source ? { sourceDir: String(options.source) } : {}),
             ...(options.backup ? { backupDir: String(options.backup) } : {}),
           }),
@@ -122,12 +164,12 @@ export async function main(args: string[]) {
       }
       case "watch": {
         if (options.demo) {
-          throw new Error("Die Demo überträgt keine Aktivitäten.");
+          throw new Error(t("Die Demo überträgt keine Aktivitäten."));
         }
         const controller = new AbortController();
         const stop = () => controller.abort();
         Deno.addSignalListener("SIGINT", stop);
-        print("RideRelay beobachtet den Quellordner. Strg+C beendet.");
+        print(t("RideRelay beobachtet den Quellordner. Strg+C beendet."));
         try {
           while (!controller.signal.aborted) {
             await service.scan();
@@ -154,10 +196,10 @@ export async function main(args: string[]) {
         else {
           print(
             `RideRelay${state.demo ? " · Demo" : ""}\nGarmin: ${
-              state.connected ? "angemeldet" : "nicht angemeldet"
-            }\nQuelle: ${state.settings.sourceDir}${
-              state.sourceExists ? "" : " (nicht gefunden)"
-            }\nSicherung: ${state.settings.backupDir}`,
+              state.connected ? t("angemeldet") : t("nicht angemeldet")
+            }\n${t("Quelle")}: ${state.settings.sourceDir}${
+              state.sourceExists ? "" : t(" (nicht gefunden)")
+            }\n${t("Sicherung")}: ${state.settings.backupDir}`,
           );
           rides(state.activities);
         }
@@ -171,8 +213,8 @@ if (import.meta.main) {
   await main(Deno.args).catch((e) => {
     console.error(
       e instanceof Error
-        ? e.message
-        : "RideRelay konnte den Vorgang nicht abschließen.",
+        ? t(e.message)
+        : t("RideRelay konnte den Vorgang nicht abschließen."),
     );
     Deno.exitCode = 1;
   });

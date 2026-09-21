@@ -10,44 +10,48 @@
     <script type="module" src="/app.js"></script>
   </head>
   <body>
-    <a class="skip" href="#main">Zum Inhalt</a>
+    <a class="skip" href="#main" data-i18n="Zum Inhalt">Zum Inhalt</a>
     <aside class="sidebar">
       <div
         class="brand"><img src="/icons/link.svg" alt="" class="brand-icon"><strong>RideRelay</strong></div>
-      <nav aria-label="Hauptnavigation">
+      <nav aria-label="Hauptnavigation" data-i18n-label="Hauptnavigation">
         <button type="button" data-page="activities"
-          aria-current="page"><img src="/icons/list-details.svg" alt="">Aktivitäten</button>
+          aria-current="page"><img src="/icons/list-details.svg" alt=""><span data-i18n="Aktivitäten">Aktivitäten</span></button>
         <button type="button"
-          data-page="settings"><img src="/icons/settings.svg" alt="">Einstellungen</button>
+          data-page="settings"><img src="/icons/settings.svg" alt=""><span data-i18n="Einstellungen">Einstellungen</span></button>
       </nav>
       <div
-        class="sidebar-bottom"><label class="toggle-row" for="autoSync"><span>Automatischer Sync</span><input id="autoSync" type="checkbox" role="switch" disabled></label><p>Während RideRelay läuft</p></div>
+        class="sidebar-bottom"><label class="toggle-row" for="autoSync"><span data-i18n="Automatischer Sync">Automatischer Sync</span><input id="autoSync" type="checkbox" role="switch" disabled></label><p data-i18n="Während RideRelay läuft">Während RideRelay läuft</p></div>
     </aside>
     <main id="main" tabindex="-1">
       <div
-        class="topline"><span id="demo" hidden>Demo · Beispieldaten</span><time id="today"></time></div>
+        class="topline"><span id="demo" hidden data-i18n="Demo · Beispieldaten">Demo · Beispieldaten</span><time id="today"></time></div>
       <div id="notice" role="status" aria-live="polite" hidden></div>
       <div id="content">
-        <h1>Aktivitäten</h1>
-        <p class="subtitle">RideRelay wird geladen …</p>
+        <h1 data-i18n="Aktivitäten">Aktivitäten</h1>
+        <p class="subtitle"
+          data-i18n="RideRelay wird geladen …">RideRelay wird geladen …</p>
       </div>
-      <footer><span id="footnote">Originaldateien bleiben erhalten.</span><span>RideRelay</span></footer>
+      <footer><span id="footnote" data-i18n="Originaldateien bleiben erhalten.">Originaldateien bleiben erhalten.</span><span>RideRelay</span></footer>
     </main>
     <dialog id="details" class="drawer" aria-labelledby="detail-title"></dialog>
     <dialog id="login" aria-labelledby="login-title">
       <button class="icon-button close" data-close="login"
-        aria-label="Anmeldung schließen"><img src="/icons/x.svg" alt=""></button>
+        aria-label="Anmeldung schließen"
+        data-i18n-label="Anmeldung schließen"><img src="/icons/x.svg" alt=""></button>
       <img src="/icons/plug-connected.svg" class="dialog-icon" alt="">
-      <h2 id="login-title">Mit Garmin verbinden</h2>
+      <h2 id="login-title"
+        data-i18n="Mit Garmin verbinden">Mit Garmin verbinden</h2>
       <p
-        class="muted">Dein Passwort wird nur für die Anmeldung verwendet. Die Sitzung wird sicher im System gespeichert.</p>
+        class="muted"
+        data-i18n="Dein Passwort wird nur für die Anmeldung verwendet. Die Sitzung wird sicher im System gespeichert.">Dein Passwort wird nur für die Anmeldung verwendet. Die Sitzung wird sicher im System gespeichert.</p>
       <form id="login-form">
-      <label for="email">E-Mail-Adresse</label><input id="email" name="email" type="email" autocomplete="username" required>
-      <label for="password">Passwort</label><input id="password" name="password" type="password" autocomplete="current-password" required>
-      <button class="primary" type="submit">Anmelden</button>
+      <label for="email" data-i18n="E-Mail-Adresse">E-Mail-Adresse</label><input id="email" name="email" type="email" autocomplete="username" required>
+      <label for="password" data-i18n="Passwort">Passwort</label><input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="primary" type="submit"><span data-i18n="Anmelden">Anmelden</span></button>
     </form>
       <form id="mfa-form"
-        hidden><p>Gib den Bestätigungscode von Garmin ein.</p><label for="mfa-code">Bestätigungscode</label><input id="mfa-code" name="code" autocomplete="one-time-code" inputmode="numeric" required><button class="primary" type="submit">Code bestätigen</button></form>
+        hidden><p data-i18n="Gib den Bestätigungscode von Garmin ein.">Gib den Bestätigungscode von Garmin ein.</p><label for="mfa-code" data-i18n="Bestätigungscode">Bestätigungscode</label><input id="mfa-code" name="code" autocomplete="one-time-code" inputmode="numeric" required><button class="primary" type="submit"><span data-i18n="Code bestätigen">Code bestätigen</span></button></form>
       <p id="login-status" role="status" aria-live="polite"></p>
     </dialog>
   </body>

@@ -146,3 +146,21 @@ Auf GitHub wird die macOS-App als ZIP verteilt: entpacken und RideRelay.app nach
 Programme ziehen. Die lokale DMG-Erstellung bleibt mit `deno task package:mac`
 verfügbar; GitHubs macOS-Runner melden beim Mounten der Images wiederholt
 Fehler.
+
+## Sprache
+
+Unter **Einstellungen → Sprache** stehen **Systemsprache**, **Deutsch** und
+**English** zur Wahl. Bei anderen Systemsprachen verwendet RideRelay Englisch.
+Die Auswahl wird gespeichert und gilt auch für die CLI. Datums- und
+Zahlenformate passen sich an; Aktivitätennamen und Dateipfade werden nicht
+übersetzt.
+
+```sh
+deno task cli status --language en       # nur diese Ausgabe auf Englisch
+deno task cli settings --language de     # Deutsch dauerhaft speichern
+deno task cli settings --language auto   # wieder der Systemsprache folgen
+```
+
+`--json` behält unabhängig von der Sprache dieselben Feldnamen und Statuswerte.
+Übersetzungen liegen ohne zusätzliche Bibliothek in `apps/shared/i18n.js`;
+Systemdiagnosen unbekannter Herkunft werden unverändert angezeigt.

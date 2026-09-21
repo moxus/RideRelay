@@ -151,3 +151,20 @@ this workstation runs macOS. MSI is unsigned and intended for testing.
 - Integration acceptance: language switch, reload, activity/details/login
   screens, CLI overrides and stable JSON output; browser verification pending in
   M11.
+
+## M11 — Localized UI, CLI and native prompts
+
+- UI: saved language select, translated navigation, activities, detail drawer,
+  settings, login/MFA and app-owned errors; locale-aware dates and decimal
+  values.
+- CLI: persisted preference, per-invocation --language override, translated help
+  and status; JSON contracts unchanged. OS notifications and folder-picker
+  prompt use the selected language. Raw unknown system diagnostics remain
+  unchanged.
+- Gate: typecheck/lint/format, 24 tests, CLI and native macOS builds. Shared
+  catalog explicitly included in desktop packages; browser module route tested.
+- Browser checks: German/English switch without restart, reload persistence,
+  English details, synthetic login, translated demo-upload rejection, 390px
+  layout, keyboard focus and no console errors. Final committed runtime handoff
+  pending.
+- Foundation commit: 515c0a0. No additional runtime dependency.

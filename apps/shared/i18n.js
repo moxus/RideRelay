@@ -2,6 +2,9 @@
  * No DOM or runtime dependency: shared by the browser, CLI and notifications.
  */
 export const english = {
+  "Vorgang fehlgeschlagen.": "Operation failed.",
+  "Anmeldung kann momentan nicht abgebrochen werden.":
+    "Sign-in cannot be cancelled right now.",
   "Garmin-Anmeldung erforderlich. Bitte erneut anmelden.":
     "Garmin sign-in required. Please sign in again.",
   "Garmin konnte die FIT-Datei nicht importieren.":

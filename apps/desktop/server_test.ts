@@ -88,3 +88,11 @@ Deno.test("login exposes only status and accepts MFA via separate request", asyn
   assert(code === "123456");
   assert((await post("authStatus")).data.status === "passed");
 });
+
+Deno.test("browser receives the shared catalog as JavaScript", async () => {
+  const handler = createHandler({} as SyncService, {} as GarminAdapter);
+  const response = await handler(new Request("http://127.0.0.1:4187/i18n.js"));
+  assert(response.status === 200);
+  assert(response.headers.get("content-type") === "text/javascript");
+  assert((await response.text()).includes("export function resolveLanguage"));
+});
