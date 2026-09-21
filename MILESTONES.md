@@ -127,3 +127,15 @@ this workstation runs macOS. MSI is unsigned and intended for testing.
   capacity), 6215223 (ZIP distribution). First release tag: v0.1.0.
 - Release publication is verified separately after tagging; Windows interactive
   installation and trusted code signing are still outside automated acceptance.
+
+### M9 release acceptance — complete
+
+- Tagged commit a907f4d: run 35639905464 passed both native build jobs and the
+  release job. Public pre-release:
+  https://github.com/moxus/RideRelay/releases/tag/v0.1.0
+- Both published packages were downloaded and SHA-256 verified successfully.
+  macOS ZIP integrity passed; Windows installer has valid MSI compound-file
+  format.
+- Future v* tags follow the same gated build/publication workflow. No Garmin
+  credentials are stored in GitHub. Manual Windows GUI installation remains
+  open.
