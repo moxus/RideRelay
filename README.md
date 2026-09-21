@@ -93,3 +93,15 @@ konkurrierende Uploads, Garmin-Protokoll/MFA/Refresh/Fehler und lokale
 API-Abschirmung. Der Schlüsselbund wurde mit wegwerfbaren Testdaten geprüft.
 Echte Garmin-Uploads sind kein Teil automatisierter Tests. Siehe `MILESTONES.md`
 und `design-qa.md` für die Abnahme und verbleibende Live-Prüfungen.
+
+## macOS-Paket
+
+`deno task package:mac` erzeugt `dist/RideRelay.dmg` für die Architektur des
+Build-Macs (hier Apple Silicon). DMG öffnen und RideRelay nach Programme ziehen.
+Deno muss auf dem Zielgerät nicht installiert sein. Einstellungen, Verlauf und
+Schlüsselbund bleiben außerhalb des App-Pakets erhalten.
+
+Das Paket ist lokal ad hoc signiert und nicht notarisiert. Für öffentliche
+Downloads ohne die üblichen macOS-Vertrauenswarnungen sind Apple Developer ID
+und Notarisierung separat erforderlich. Es wird nichts automatisch
+veröffentlicht.

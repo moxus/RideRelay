@@ -82,3 +82,12 @@ macOS ICNS are tracked under apps/desktop/assets. Prompt and provenance are
 recorded there. Root desktop configuration references the icon. Native desktop
 build passed; bundle icon metadata and embedded asset verified; 128px rendering
 inspected.
+
+## M7 — Installierbares macOS-Paket
+
+Deno Desktop unterstützt DMG direkt über die Ausgabeendung. `package:mac` baut
+RideRelay.dmg für den Host (Apple Silicon), ohne zusätzliche
+Installer-Abhängigkeit. Lokale ad-hoc-Signatur; keine Developer-ID-Notarisierung
+oder Veröffentlichung. Akzeptanz: erfolgreicher Deno-Paketbuild, hdiutil-Prüfung
+und lesendes Einhängen zur Kontrolle der App samt Programme-Verknüpfung und
+Codesign-Prüfung.
