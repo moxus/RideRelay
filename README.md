@@ -4,6 +4,10 @@ MyWhoosh-Fahrten lokal sichern und zu Garmin Connect übertragen. Gemeinsamer
 Deno-Kern für CLI und native Desktop-App, mit Aktivitäten, Verlauf und
 Einstellungen.
 
+![RideRelay: Aktivitätenübersicht mit einer bereiten Fahrt und synchronisiertem Verlauf](docs/screenshot.jpg)
+
+_Die App mit Beispieldaten._
+
 ## Start
 
 Voraussetzung: Deno 2.9.7 oder kompatibel. Auf macOS: `brew install deno`.
